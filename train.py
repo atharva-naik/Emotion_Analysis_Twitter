@@ -23,10 +23,10 @@ if __name__ == "__main__":
 	parser.add_argument('--gpu_id', type=int, default=0)
 	parser.add_argument('--model_name', type=str, default="BERT")
 	parser.add_argument('--save_dir',type=str, default="saved_models")
-  	parser.add_argument('--dataset', type=str, default=None)
+	parser.add_argument('--dataset', type=str, default=None)
 	parser.add_argument('--use_empath', type=str, default="y")
-  	parser.add_argument('--lr', type=float, default=2e-5)
-  	parser.add_argument('--batch_size', type=float, default=32)
+	parser.add_argument('--lr', type=float, default=2e-5)
+	parser.add_argument('--batch_size', type=float, default=32)
 	parser.add_argument('--save_policy', type=str, default="loss")
 	parser.add_argument('--activation', type=str, default="tanh")
 	parser.add_argument('--optim', type=str, default="adam")
@@ -54,14 +54,14 @@ if __name__ == "__main__":
 	print(f"SAVE_DIR = {SAVE_DIR}")
 	USE_EMPATH = args.use_empath
 	print(f'USE_EMPATH = {USE_EMPATH}')
-  	IN_FEATURES = 768
+	IN_FEATURES = 768
 	print(f'IN_FEATURES = {IN_FEATURES}')
 	MODEL_SAVING_POLICY = args.save_policy
 	print(f'MODEL_SAVING_POLICY = {MODEL_SAVING_POLICY}')
 	ACTIVATION_FN = args.activation
 	print(f'ACTIVATION_FN = {ACTIVATION_FN}')
 	THRESHOLD = 0.33 if ACTIVATION_FN == "tanh" else 0.5
-  	OUTPUT_FN = nn.Tanh() if ACTIVATION_FN == "tanh" else nn.Sigmoid()
+	OUTPUT_FN = nn.Tanh() if ACTIVATION_FN == "tanh" else nn.Sigmoid()
 	print(f'THRESHOLD = {THRESHOLD}')
 	LOSS_FN = args.loss_fn
 	print(f'LOSS_FN = {LOSS_FN}')
@@ -83,7 +83,7 @@ if __name__ == "__main__":
 	print(f'EPOCHS = {EPOCHS}')
 	BATCH_SIZE = args.batch_size
 	print(f'BATCH_SIZE = {BATCH_SIZE}')
-  	LR = args.lr
+	LR = args.lr
 	print(f'LEARNING_RATE = {LR}')
 	
 	seed_val = args.seed
