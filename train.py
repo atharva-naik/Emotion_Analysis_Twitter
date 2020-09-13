@@ -98,9 +98,9 @@ if __name__ == "__main__":
 	if torch.cuda.is_available():
 		# Tell PyTorch to use the GPU.
 		if gpu_id == 0:
-		device = torch.device("cuda:0")
+			device = torch.device("cuda:0")
 		else:
-		device = torch.device("cuda:1")
+			device = torch.device("cuda:1")
 		print('There are %d GPU(s) available.' % torch.cuda.device_count())
 		print('We will use the GPU:', torch.cuda.get_device_name(0))
 	# If not...
@@ -110,127 +110,127 @@ if __name__ == "__main__":
 
 	class LexiconFeatures() :
 		def __init__(self) :
-		self.lexicon = Empath()
+			self.lexicon = Empath()
 
 		def tokenize(self, text):
-		text = [str(w) for w in tokenizer(text)]
-		return text
+			text = [str(w) for w in tokenizer(text)]
+			return text
 
 		def get_features(self, text):
-		features = list(self.lexicon.analyze(text, normalize=True).values())
-		features = torch.as_tensor([features])
-		return(features)
+			features = list(self.lexicon.analyze(text, normalize=True).values())
+			features = torch.as_tensor([features])
+			return(features)
 
 		def parse_sentences(self, sentences) :
-		sent_features = []
-		for sent in sentences:
-			sent_features.append(self.get_features(sent))
-		sent_features = torch.cat(sent_features, dim=0)
-		print("Empath features: {}".format(sent_features.shape))
-		return sent_features
+			sent_features = []
+			for sent in sentences:
+				sent_features.append(self.get_features(sent))
+			sent_features = torch.cat(sent_features, dim=0)
+			print("Empath features: {}".format(sent_features.shape))
+			return sent_features
 
 
 	class CovidData(Dataset) :
 		def __init__(self, PATH) :
-		self.data = pd.read_csv(PATH).to_dict(orient="records")		
-		if MODEL_NAME == 'BERT' :
-			self.tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
-		else :
-			self.tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
-		self.sentences = []
-		self.targets = []
-		self.targets_one_hot = []
-		self.emotions = ["Thankful", "Anxious", "Annoyed", "Denial", "Joking", "Empathetic", "Optimistic", "Pessimistic", "Sad", "Surprise", "Official report"]
-		for i in range(len(self.data)) :
-			item = self.data[i]
-			self.sentences.append(clean_tweets(item['Tweet']))
-			self.targets.append(self.get_target([item[k] for k in self.emotions]))
-			self.targets_one_hot.append(torch.tensor([item[k] for k in self.emotions], dtype=torch.float))
-		self.encode()
-		if USE_EMPATH == 'y' :
-			self.lexicon_features = LexiconFeatures().parse_sentences(self.sentences)
-			print(self.lexicon_features.shape)
-		print("Dataset size: {}".format(len(self.sentences)))
+			self.data = pd.read_csv(PATH).to_dict(orient="records")		
+			if MODEL_NAME == 'BERT' :
+				self.tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
+			else :
+				self.tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
+			self.sentences = []
+			self.targets = []
+			self.targets_one_hot = []
+			self.emotions = ["Thankful", "Anxious", "Annoyed", "Denial", "Joking", "Empathetic", "Optimistic", "Pessimistic", "Sad", "Surprise", "Official report"]
+			for i in range(len(self.data)) :
+				item = self.data[i]
+				self.sentences.append(clean_tweets(item['Tweet']))
+				self.targets.append(self.get_target([item[k] for k in self.emotions]))
+				self.targets_one_hot.append(torch.tensor([item[k] for k in self.emotions], dtype=torch.float))
+			self.encode()
+			if USE_EMPATH == 'y' :
+				self.lexicon_features = LexiconFeatures().parse_sentences(self.sentences)
+				print(self.lexicon_features.shape)
+			print("Dataset size: {}".format(len(self.sentences)))
 		
 		def __len__(self) :
-		return len(self.sentences)
+			return len(self.sentences)
 		
 		def __getitem__(self, idx) :
-		if USE_EMPATH == 'y' :
-			return self.input_ids[idx], self.attention_masks[idx], self.token_type_ids[idx], self.targets[idx], self.source_lengths[idx], self.targets_one_hot[idx], self.lexicon_features[idx]
-		else :
-			return self.input_ids[idx], self.attention_masks[idx], self.token_type_ids[idx], self.targets[idx], self.source_lengths[idx], self.targets_one_hot[idx]
+			if USE_EMPATH == 'y' :
+				return self.input_ids[idx], self.attention_masks[idx], self.token_type_ids[idx], self.targets[idx], self.source_lengths[idx], self.targets_one_hot[idx], self.lexicon_features[idx]
+			else :
+				return self.input_ids[idx], self.attention_masks[idx], self.token_type_ids[idx], self.targets[idx], self.source_lengths[idx], self.targets_one_hot[idx]
 
 		def encode(self) :
-		self.input_ids = []
-		self.attention_masks = []
-		self.token_type_ids = []
-		self.max_len, self.source_lengths = self.max_length()
-		for sent in self.sentences :
-			encoded_dict = self.tokenizer.encode_plus(sent,
-								add_special_tokens=True,
-								max_length=self.max_len, 
-								pad_to_max_length="True", 
-								return_attention_mask = True,
-								return_tensors = 'pt', 
-								return_token_type_ids = True,
-								truncation = True)
-			self.input_ids.append(encoded_dict['input_ids'])
-			self.attention_masks.append(encoded_dict['attention_mask'])
-			self.token_type_ids.append(encoded_dict['token_type_ids'])
-		
-		self.input_ids = torch.cat(self.input_ids, dim=0)
-		self.attention_masks = torch.cat(self.attention_masks, dim=0)
-		self.token_type_ids = torch.cat(self.token_type_ids, dim=0)
-		self.source_lengths = torch.LongTensor(self.source_lengths)
-		print("input ids: {} attention_masks: {} token_type_ids: {} source_lengths: {}".format(
-			self.input_ids.shape, self.attention_masks.shape, self.token_type_ids.shape, self.source_lengths.shape))
+			self.input_ids = []
+			self.attention_masks = []
+			self.token_type_ids = []
+			self.max_len, self.source_lengths = self.max_length()
+			for sent in self.sentences :
+				encoded_dict = self.tokenizer.encode_plus(sent,
+									add_special_tokens=True,
+									max_length=self.max_len, 
+									pad_to_max_length="True", 
+									return_attention_mask = True,
+									return_tensors = 'pt', 
+									return_token_type_ids = True,
+									truncation = True)
+				self.input_ids.append(encoded_dict['input_ids'])
+				self.attention_masks.append(encoded_dict['attention_mask'])
+				self.token_type_ids.append(encoded_dict['token_type_ids'])
+			
+			self.input_ids = torch.cat(self.input_ids, dim=0)
+			self.attention_masks = torch.cat(self.attention_masks, dim=0)
+			self.token_type_ids = torch.cat(self.token_type_ids, dim=0)
+			self.source_lengths = torch.LongTensor(self.source_lengths)
+			print("input ids: {} attention_masks: {} token_type_ids: {} source_lengths: {}".format(
+				self.input_ids.shape, self.attention_masks.shape, self.token_type_ids.shape, self.source_lengths.shape))
 		
 		def max_length(self) :
-		max_len = 0
-		lengths = []
-		for sent in self.sentences:
-			input_ids = self.tokenizer.encode(sent, add_special_tokens=True)
-			max_len = max(max_len, len(input_ids))
-			lengths.append(min(512, len(input_ids)))
-		max_len = min(512, max_len)
-		print(f"Max Length:{max_len}")
-		return max_len, lengths
+			max_len = 0
+			lengths = []
+			for sent in self.sentences:
+				input_ids = self.tokenizer.encode(sent, add_special_tokens=True)
+				max_len = max(max_len, len(input_ids))
+				lengths.append(min(512, len(input_ids)))
+			max_len = min(512, max_len)
+			print(f"Max Length:{max_len}")
+			return max_len, lengths
 
 		def get_target(self, x) :
-		temp = []
-		for i,v in enumerate(x) :
-			if v == 1:
-			temp.append(i)
-		temp += [-1]*(11-len(temp))
-		return torch.tensor(temp)
+			temp = []
+			for i,v in enumerate(x) :
+				if v == 1:
+				temp.append(i)
+			temp += [-1]*(11-len(temp))
+			return torch.tensor(temp)
 
 
 	class Net(nn.Module) :
 		def __init__(self, embed_size=IN_FEATURES) :
-		super(Net, self).__init__()
-		self.embed_size = embed_size
-		if USE_EMPATH :
-			self.embed_size += 194
-		self.num_classes = 11
-		print(f"Embeddings length: {self.embed_size}")
-		
-		if MODEL_NAME == 'BERT' :
-			self.bert = BertModel.from_pretrained("bert-base-cased")
-		else :
-			self.bert = RobertaModel.from_pretrained("roberta-base")
-		self.fc = nn.Linear(self.embed_size, self.num_classes)
-		self.dropout = nn.Dropout(BERT_DROPOUT)
-		
-		def forward(self,input_ids, attn_masks, token_type_ids, source_lengths, lexicon_features) :
-		hidden_states = self.bert(input_ids, attn_masks, token_type_ids)[0]
-		output_vectors = hidden_states[:,0,:]
-		if USE_DROPOUT == 'y' :
-			output_vectors = self.dropout(output_vectors)
-		if USE_EMPATH == 'y' :
-			output_vectors = torch.cat((output_vectors, lexicon_features), dim=-1)
-		logits_out = self.fc(output_vectors)
-		return logits_out
+			super(Net, self).__init__()
+			self.embed_size = embed_size
+			if USE_EMPATH :
+				self.embed_size += 194
+			self.num_classes = 11
+			print(f"Embeddings length: {self.embed_size}")
+			
+			if MODEL_NAME == 'BERT' :
+				self.bert = BertModel.from_pretrained("bert-base-cased")
+			else :
+				self.bert = RobertaModel.from_pretrained("roberta-base")
+			self.fc = nn.Linear(self.embed_size, self.num_classes)
+			self.dropout = nn.Dropout(BERT_DROPOUT)
+			
+			def forward(self,input_ids, attn_masks, token_type_ids, source_lengths, lexicon_features) :
+			hidden_states = self.bert(input_ids, attn_masks, token_type_ids)[0]
+			output_vectors = hidden_states[:,0,:]
+			if USE_DROPOUT == 'y' :
+				output_vectors = self.dropout(output_vectors)
+			if USE_EMPATH == 'y' :
+				output_vectors = torch.cat((output_vectors, lexicon_features), dim=-1)
+			logits_out = self.fc(output_vectors)
+			return logits_out
 
 
 	def accuracy(output, target, threshold) :
