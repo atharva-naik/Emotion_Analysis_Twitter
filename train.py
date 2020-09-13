@@ -5,6 +5,7 @@ import argparse
 import codecs
 import random
 import torch
+import tokenizer
 import pickle
 import numpy as np
 import itertools
@@ -94,7 +95,7 @@ if __name__ == "__main__":
 	torch.manual_seed(seed_val)
 	torch.cuda.manual_seed(seed_val)
 
-  # # If there's a GPU available...
+  	# # If there's a GPU available...
 	if torch.cuda.is_available():
 		# Tell PyTorch to use the GPU.
 		if gpu_id == 0:
@@ -201,7 +202,7 @@ if __name__ == "__main__":
 			temp = []
 			for i,v in enumerate(x) :
 				if v == 1:
-				temp.append(i)
+					temp.append(i)
 			temp += [-1]*(11-len(temp))
 			return torch.tensor(temp)
 
@@ -222,7 +223,7 @@ if __name__ == "__main__":
 			self.fc = nn.Linear(self.embed_size, self.num_classes)
 			self.dropout = nn.Dropout(BERT_DROPOUT)
 			
-			def forward(self,input_ids, attn_masks, token_type_ids, source_lengths, lexicon_features) :
+		def forward(self,input_ids, attn_masks, token_type_ids, source_lengths, lexicon_features) :
 			hidden_states = self.bert(input_ids, attn_masks, token_type_ids)[0]
 			output_vectors = hidden_states[:,0,:]
 			if USE_DROPOUT == 'y' :
@@ -254,11 +255,11 @@ if __name__ == "__main__":
 		source_lengths = batch[4].to(device)
 		lexicon_features = None
 		if USE_EMPATH == 'y' :
-		lexicon_features = batch[6].to(device)
+			lexicon_features = batch[6].to(device)
 		return model(input_ids, attn_masks, token_type_ids, source_lengths, lexicon_features)
 
-	train_dataloader = DataLoader(CovidData(PATH=f"{DATA_PATH}/train.csv"), shuffle=True, batch_size=batch_size)
-	val_dataloader = DataLoader(CovidData(PATH=f"{DATA_PATH}/val.csv"), shuffle=False, batch_size=batch_size)
+	train_dataloader = DataLoader(CovidData(PATH=f"{DATA_PATH}/train.csv"), shuffle=True, batch_size=BATCH_SIZE)
+	val_dataloader = DataLoader(CovidData(PATH=f"{DATA_PATH}/val.csv"), shuffle=False, batch_size=BATCH_SIZE)
 	loss_function, optimizer = None, None
 
 	if ACTIVATION_FN == "tanh":
@@ -268,16 +269,16 @@ if __name__ == "__main__":
 
 	if OPTIM == "adam" :
 		if L2_REGULARIZER == 'n':
-		optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+			optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 		else:
-		print(f"L2_REGULARIZER = y and WEIGHT_DECAY = {WEIGHT_DECAY}")
-		optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=WEIGHT_DECAY)
+			print(f"L2_REGULARIZER = y and WEIGHT_DECAY = {WEIGHT_DECAY}")
+			optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
 	else:
 		if L2_REGULARIZER == 'n':
-		optimizer = AdamW(model.parameters(), lr=lr)
+			optimizer = AdamW(model.parameters(), lr=LR)
 		else:
-		print(f"L2_REGULARIZER = y and WEIGHT_DECAY = {WEIGHT_DECAY}")
-		optimizer = AdamW(model.parameters(), lr=lr, weight_decay=WEIGHT_DECAY)
+			print(f"L2_REGULARIZER = y and WEIGHT_DECAY = {WEIGHT_DECAY}")
+			optimizer = AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
 	
 	model = Net().to(device)
 	training_stats = []
@@ -294,41 +295,41 @@ if __name__ == "__main__":
 		train_loss = []
 		reg_loss = None
 		for i, batch in enumerate(train_dataloader) :
-		model.zero_grad()
+			model.zero_grad()
 
-		target = batch[3].to(device)
-		one_hot = batch[5].to(device)
-		output = run_model(model, batch)
-		if ACTIVATION_FN == "tanh" :
-			output = OUTPUT_FN(output)
-			reg_loss = loss_function(output, target)
-		else :
-			reg_loss = loss_function(output, one_hot)
-		train_loss.append(reg_loss.item())
-		
-		reg_loss.backward()
-		torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)				
-		optimizer.step()
-		
-		if USE_SCHEDULER == 'y' :
-			scheduler.step()
-
-		model.eval()
-		val_loss = []
-		val_acc = []			
-		for i, batch in enumerate(val_dataloader) :
-		with torch.no_grad() :
 			target = batch[3].to(device)
 			one_hot = batch[5].to(device)
 			output = run_model(model, batch)
-			
 			if ACTIVATION_FN == "tanh" :
-			output = OUTPUT_FN(output)
-			reg_loss = loss_function(output, target)
+				output = OUTPUT_FN(output)
+				reg_loss = loss_function(output, target)
 			else :
-			reg_loss = loss_function(output, one_hot)
-			val_loss.append(reg_loss.item())
-			val_acc.append(accuracy(output, one_hot, THRESHOLD))
+				reg_loss = loss_function(output, one_hot)
+			train_loss.append(reg_loss.item())
+			
+			reg_loss.backward()
+			torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)				
+			optimizer.step()
+			
+			if USE_SCHEDULER == 'y' :
+				scheduler.step()
+
+			model.eval()
+			val_loss = []
+			val_acc = []			
+			for i, batch in enumerate(val_dataloader) :
+				with torch.no_grad() :
+					target = batch[3].to(device)
+					one_hot = batch[5].to(device)
+					output = run_model(model, batch)
+					
+					if ACTIVATION_FN == "tanh" :
+						output = OUTPUT_FN(output)
+						reg_loss = loss_function(output, target)
+					else :
+						reg_loss = loss_function(output, one_hot)
+					val_loss.append(reg_loss.item())
+					val_acc.append(accuracy(output, one_hot, THRESHOLD))
 			
 
 		avg_train_loss = sum(train_loss)/len(train_loss)
@@ -336,20 +337,20 @@ if __name__ == "__main__":
 		avg_val_acc = torch.stack(val_acc, dim=0).mean(dim=0).tolist()
 		
 		training_stats.append({
-		'training loss' : avg_train_loss,
-		'validation loss' : avg_valid_loss,
-		'val acc' : avg_val_acc,
+			'training loss' : avg_train_loss,
+			'validation loss' : avg_valid_loss,
+			'val acc' : avg_val_acc,
 		})
 		print(json.dumps(training_stats[-1]))
 
 		if MODEL_SAVING_POLICY == "acc":
-		if(best_val_acc <= avg_val_acc[0]):
-			torch.save(model.state_dict(), f"{SAVE_DIR}/{MODEL_NAME}_EMPATH_{USE_EMPATH}.pt")
-			best_val_acc = avg_val_acc[0]
+			if(best_val_acc <= avg_val_acc[0]):
+				torch.save(model.state_dict(), f"{SAVE_DIR}/{MODEL_NAME}_EMPATH_{USE_EMPATH}.pt")
+				best_val_acc = avg_val_acc[0]
 		else:			
-		if(best_val_loss >= avg_valid_loss):
-			torch.save(model.state_dict(), f"{SAVE_DIR}/{MODEL_NAME}_EMPATH_{USE_EMPATH}.pt")
-			best_val_loss = avg_valid_loss
+			if(best_val_loss >= avg_valid_loss):
+				torch.save(model.state_dict(), f"{SAVE_DIR}/{MODEL_NAME}_EMPATH_{USE_EMPATH}.pt")
+				best_val_loss = avg_valid_loss
 
 	model = Net().cuda(gpu_id)
 	model_path = SAVE_DIR + "/" + MODEL_NAME + "_EMPATH_" + USE_EMPATH + ".pt"
@@ -361,19 +362,19 @@ if __name__ == "__main__":
 	model.eval()
 	for i, batch in enumerate(test_dataloader) :
 		with torch.no_grad() :
-		target = batch[3].to(device)
-		one_hot = batch[5].to(device)
-		output = run_model(model, batch)
+			target = batch[3].to(device)
+			one_hot = batch[5].to(device)
+			output = run_model(model, batch)
 
-		reg_loss = None
-		if ACTIVATION_FN == "tanh" :
-			output = OUTPUT_FN(output)
-			reg_loss = loss_function(output, target)
-		else :
-			reg_loss = loss_function(output, one_hot)
-		val_loss.append(reg_loss.item())
-		val_acc.append(accuracy(output, one_hot, THRESHOLD))
-		print("\n\nBatch: {} val Loss: {} val_r: {}".format(i, reg_loss, val_acc[-1]))
+			reg_loss = None
+			if ACTIVATION_FN == "tanh" :
+				output = OUTPUT_FN(output)
+				reg_loss = loss_function(output, target)
+			else :
+				reg_loss = loss_function(output, one_hot)
+			val_loss.append(reg_loss.item())
+			val_acc.append(accuracy(output, one_hot, THRESHOLD))
+			print("\n\nBatch: {} val Loss: {} val_r: {}".format(i, reg_loss, val_acc[-1]))
 
 	test_stats = ({
 		'test loss' : sum(val_loss)/len(val_loss),
