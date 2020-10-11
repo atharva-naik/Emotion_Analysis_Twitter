@@ -64,8 +64,8 @@ if __name__ == "__main__":
 	THRESHOLD = 0.33 if ACTIVATION_FN == "tanh" else 0.5
 	OUTPUT_FN = nn.Tanh() if ACTIVATION_FN == "tanh" else nn.Sigmoid()
 	print(f'THRESHOLD = {THRESHOLD}')
-	LOSS_FN = args.loss_fn
-	print(f'LOSS_FN = {LOSS_FN}')
+#	LOSS_FN = args.loss_fn
+#	print(f'LOSS_FN = {LOSS_FN}')
 	OPTIM = args.optim
 	print(f'OPTIM = {OPTIM}')
 	L2_REGULARIZER = args.l2
@@ -174,8 +174,7 @@ if __name__ == "__main__":
 									pad_to_max_length="True", 
 									return_attention_mask = True,
 									return_tensors = 'pt', 
-									return_token_type_ids = True,
-									truncation = True)
+									return_token_type_ids = True)
 				self.input_ids.append(encoded_dict['input_ids'])
 				self.attention_masks.append(encoded_dict['attention_mask'])
 				self.token_type_ids.append(encoded_dict['token_type_ids'])
@@ -235,7 +234,7 @@ if __name__ == "__main__":
 
 
 	def accuracy(output, target, threshold) :
-		output = OUTPUT_FN(output)
+		output = OUTPUT_FN(output) if OUTPUT_FN != 'tanh' else output
 		lrap = label_ranking_average_precision_score(target.cpu(), output.cpu())
 		output = (output >= threshold).long().cpu()
 		target = target.long().cpu()
@@ -266,6 +265,8 @@ if __name__ == "__main__":
 		loss_function = nn.MultiLabelMarginLoss()
 	else:
 		loss_function = nn.BCEWithLogitsLoss()
+        
+	model = Net().to(device)
 
 	if OPTIM == "adam" :
 		if L2_REGULARIZER == 'n':
@@ -280,7 +281,6 @@ if __name__ == "__main__":
 			print(f"L2_REGULARIZER = y and WEIGHT_DECAY = {WEIGHT_DECAY}")
 			optimizer = AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
 	
-	model = Net().to(device)
 	training_stats = []
 	total_steps = len(train_dataloader) * EPOCHS
 	scheduler = get_linear_schedule_with_warmup(optimizer, 
@@ -300,36 +300,41 @@ if __name__ == "__main__":
 			target = batch[3].to(device)
 			one_hot = batch[5].to(device)
 			output = run_model(model, batch)
+#			print("output",output)
+#			print("target",target)
+#			print("one hot",one_hot)
 			if ACTIVATION_FN == "tanh" :
 				output = OUTPUT_FN(output)
 				reg_loss = loss_function(output, target)
 			else :
 				reg_loss = loss_function(output, one_hot)
 			train_loss.append(reg_loss.item())
-			
+						
 			reg_loss.backward()
-			torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)				
+#			torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 			optimizer.step()
 			
 			if USE_SCHEDULER == 'y' :
 				scheduler.step()
-
-			model.eval()
-			val_loss = []
-			val_acc = []			
-			for i, batch in enumerate(val_dataloader) :
-				with torch.no_grad() :
-					target = batch[3].to(device)
-					one_hot = batch[5].to(device)
-					output = run_model(model, batch)
-					
-					if ACTIVATION_FN == "tanh" :
-						output = OUTPUT_FN(output)
-						reg_loss = loss_function(output, target)
-					else :
-						reg_loss = loss_function(output, one_hot)
-					val_loss.append(reg_loss.item())
-					val_acc.append(accuracy(output, one_hot, THRESHOLD))
+			if i%50 == 0 :
+				print(f"Batch: {i} Loss: {reg_loss}")
+			
+		model.eval()
+		val_loss = []
+		val_acc = []			
+		for i, batch in enumerate(val_dataloader) :
+			with torch.no_grad() :
+				target = batch[3].to(device)
+				one_hot = batch[5].to(device)
+				output = run_model(model, batch)
+				reg_loss = None	
+				if ACTIVATION_FN == "tanh" :
+					output = OUTPUT_FN(output)
+					reg_loss = loss_function(output, target)
+				else :
+					reg_loss = loss_function(output, one_hot)
+				val_loss.append(reg_loss.item())
+				val_acc.append(accuracy(output, one_hot, THRESHOLD))
 			
 
 		avg_train_loss = sum(train_loss)/len(train_loss)

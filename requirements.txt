@@ -9,4 +9,3 @@ tokenizer
 sklearn
 tqdm
 nltk
-ast

@@ -11,7 +11,7 @@ from pathlib import Path
 from transformers import BertTokenizer
 from nltk.tokenize import word_tokenize
 from tokenizer import tokenizer
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 # from bs4 import BeautifulSoup
 # from geotext import GeoText
