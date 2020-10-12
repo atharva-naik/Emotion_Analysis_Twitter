@@ -1,4 +1,3 @@
-# requieements.in
 seaborn
 matplotlib
 torch
