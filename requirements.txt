@@ -1,3 +1,4 @@
+# requieements.in
 seaborn
 matplotlib
 torch
@@ -9,3 +10,4 @@ tokenizer
 sklearn
 tqdm
 nltk
+ast
