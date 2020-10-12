@@ -66,8 +66,7 @@ ACTIVATION = args.activation
 USE_SCHEDULER = args.use_scheduler
 THRESHOLD = 0.33 if ACTIVATION == 'tanh' else 0.5
 OUTPUT_FN = nn.Tanh() if ACTIVATION == 'tanh' else nn.Sigmoid()
-DEVICE = torch.device("cuda:0") if torch.cuda.is_available() and USE_GPU else torch.device("cpu")
-
+DEVICE = "cuda:0" if torch.cuda.is_available() and USE_GPU else "cpu"
 SAVE_POLICY = args.save_policy
 OPTIM = args.optim
 L2 = args.l2
@@ -94,8 +93,9 @@ params = {
 	"WD" : WD,
 	"USE_DROPOUT" : USE_DROPOUT,
 	"DROPOUT_RATE" : DROPOUT_RATE,
+	"DEVICE": DEVICE
 }
-
+print(json.dumps(params))
 with open(f"{SAVE_DIR}/{EXP_NAME}/hp.json","w") as fin :
     json.dump(params, fin, indent=4)
 
@@ -276,7 +276,7 @@ if __name__ == "__main__":
                                     num_training_steps = total_steps)
 	
 	training_stats = []
-	best_save = -1e8
+	best_save = 1e8 if SAVE_POLICY == 'loss' else -1e8
 	best_model_path = None
 	
 	for epoch_i in range(EPOCHS) :
@@ -321,8 +321,8 @@ if __name__ == "__main__":
 					reg_loss = loss_fn(output, target)
 				val_loss.append(reg_loss.item())
 				val_acc.append(accuracy(output, one_hot))
-				if i%100 == 0 :
-					print("Batch: {} val Loss: {} val_r: {}".format(i, reg_loss, val_acc[-1]))
+#				if i%100 == 0 :
+#					print("Batch: {} val Loss: {} val_r: {}".format(i, reg_loss, val_acc[-1]))
 
 		training_stats.append({
 			'training loss' : sum(train_loss)/len(train_loss),
@@ -332,15 +332,17 @@ if __name__ == "__main__":
 		print(json.dumps(training_stats[-1]))
 		print("acc, micro_f1, macro_f1, jacc, lrap, hamming")
 		if SAVE_POLICY == 'loss' :
-			if best_save > training_stats[-1]["val_loss"] :
-				best_save = training_stats[-1]["val_loss"]
+			if best_save > training_stats[-1]["validation loss"] :
+				best_save = training_stats[-1]["validation loss"]
 				best_model_path = f"{SAVE_DIR}/{EXP_NAME}/{epoch_i}.ckpt"
 				torch.save(model.state_dict(), best_model_path)
+				print(f"{SAVE_POLICY} : Saving the model : {epoch_i}")
 		else :
-			if best_save < training_stats[-1]["val_acc"][0] :
-				best_save = training_stats[-1]["val_acc"][0]
+			if best_save < training_stats[-1]["val acc"][0] :
+				best_save = training_stats[-1]["val acc"][0]
 				best_model_path = f"{SAVE_DIR}/{EXP_NAME}/{EPOCHS}.ckpt"
 				torch.save(model.state_dict(), best_model_path)
+				print(f"{SAVE_POLICY} : Saving the model: {epoch_i}")
     
     
 	model = Net().to(DEVICE)
@@ -369,7 +371,7 @@ if __name__ == "__main__":
 
 	training_stats = ({
 		'test loss' : sum(val_loss)/len(val_loss),
-		'test acc' : torch.stack(val_acc, dim=0).mean(dim=0),
+		'test acc' : torch.stack(val_acc, dim=0).mean(dim=0).tolist(),
 	})
 	print(training_stats)
 	print("acc, micro_f1, macro_f1, jacc, lrap, hamming")
