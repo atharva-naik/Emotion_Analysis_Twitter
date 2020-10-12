@@ -25,7 +25,7 @@ Note : The -H stands for hydration, and -s for scraping. Restrictions related to
 
 #### For training :
 ```bash
-python train.py --gpu_id (gpu_id_to_use) --model_name (model_name) --save_dir (path to save dir) -- dataset (path to dataset) --use_empath (y/n) --lr (learning rate) --batch_size (batch_size) --save_policy (criterion_for_saving_policy) --activation (activation fn) --optim (optimizer) --l2 (y/n) --wd (weight_decay) --use_scheduler (use) --use_dropout (y/n) --bert_dropout (dropout value) --epochs (num_epochs) --seed (seed)
+python train.py --exp_name (value) --encoder (value) --data_dir (value) --save_dir (value) --lr (value) --batch_size (value) --save_policy (value) --activation (value) --optim (value) --wd (value) --epochs (value) --seed (value) --use_gpu(to use gpu) --use_empath(to use empath) --l2(to use l2 reg.) --use_scheduler(to use sched) --use_dropout(to use dropout)
 ```
 
 #### For generating predictions :
