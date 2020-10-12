@@ -9,4 +9,4 @@ tokenizer
 sklearn
 tqdm
 nltk
-ast
+empath
