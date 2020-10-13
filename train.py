@@ -13,8 +13,9 @@ from scipy import stats
 import pandas as pd
 import torch.nn as nn
 import torch.optim as optim
+from transformers import AutoModel, AutoTokenizer
 from torch.utils.data import TensorDataset, DataLoader, Dataset, random_split
-from transformers import BertTokenizer, BertModel, RobertaTokenizer, RobertaModel, AdamW, get_linear_schedule_with_warmup
+# from transformers import BertTokenizer, BertModel, RobertaTokenizer, RobertaModel, AdamW, get_linear_schedule_with_warmup
 from sklearn.metrics import accuracy_score, f1_score, label_ranking_average_precision_score, hamming_loss, jaccard_score
 from scipy.stats import pearsonr
 from create_features_v2 import clean_tweets
@@ -126,9 +127,9 @@ class DatasetModule(Dataset) :
     def __init__(self, PATH, category) :
         self.data = pd.read_csv(PATH).to_dict(orient="records")
         if ENCODER == 'bert' :
-            self.tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
+            self.tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
         else :
-            self.tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
+            self.tokenizer = AutoTokenizer.from_pretrained("roberta-base")
         if self.category == 'emobank' :
             self.get_emobank()
         else :
@@ -227,10 +228,10 @@ class Net(nn.Module) :
         super(Net, self).__init__()
         
         if ENCODER == 'bert' :
-            self.bert = BertModel.from_pretrained("bert-base-cased")
+            self.bert = AutoModel.from_pretrained("bert-base-cased")
             self.embed_size = 768
         else :
-            self.bert = RobertaModel.from_pretrained("roberta-base")
+            self.bert = AutoModel.from_pretrained("roberta-base")
             self.embed_size = 768
             
         if EMPATH :
