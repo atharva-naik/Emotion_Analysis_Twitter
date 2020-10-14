@@ -5,7 +5,7 @@ import argparse
 import codecs
 import random
 import torch
-import tokenizer
+import tokenizer 
 import pickle
 import numpy as np
 import itertools
@@ -126,6 +126,7 @@ class LexiconFeatures() :
 class DatasetModule(Dataset) :
     def __init__(self, PATH, category) :
         self.data = pd.read_csv(PATH).to_dict(orient="records")
+        self.category = category
         if ENCODER == 'bert' :
             self.tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
         else :
