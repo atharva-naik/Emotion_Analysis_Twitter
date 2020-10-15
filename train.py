@@ -300,8 +300,8 @@ if __name__ == "__main__":
     senwave_train = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/train.csv",category="senwave"), shuffle=True, batch_size=BATCH_SIZE)
     senwave_val = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/val.csv",category="senwave"), shuffle=False, batch_size=BATCH_SIZE)
 
-    emobank_train = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/Emobank/train.csv",category="emobank"), shuffle=True, batch_size=BATCH_SIZE)
-    emobank_val = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/Emobank/val.csv",category="emobank"), shuffle=False, batch_size=BATCH_SIZE)
+    emobank_train = DataLoader(DatasetModule(PATH=f"{DATA_DIR}Emobank/train.csv",category="emobank"), shuffle=True, batch_size=BATCH_SIZE)
+    emobank_val = DataLoader(DatasetModule(PATH=f"{DATA_DIR}Emobank/val.csv",category="emobank"), shuffle=False, batch_size=BATCH_SIZE)
 
     model = Net().to(DEVICE)
     loss_fn = nn.BCELoss() if ACTIVATION == 'bce' else nn.MultiLabelMarginLoss()
