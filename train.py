@@ -297,8 +297,8 @@ def run_model(model, batch, category) :
     return model(input_ids, attn_masks, token_type_ids, source_lengths, lexicon_features, category)
 
 if __name__ == "__main__":
-    senwave_train = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/train.csv",category="senwave"), shuffle=True, batch_size=BATCH_SIZE)
-    senwave_val = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/val.csv",category="senwave"), shuffle=False, batch_size=BATCH_SIZE)
+    senwave_train = DataLoader(DatasetModule(PATH=f"{DATA_DIR}train.csv",category="senwave"), shuffle=True, batch_size=BATCH_SIZE)
+    senwave_val = DataLoader(DatasetModule(PATH=f"{DATA_DIR}val.csv",category="senwave"), shuffle=False, batch_size=BATCH_SIZE)
 
     emobank_train = DataLoader(DatasetModule(PATH=f"{DATA_DIR}Emobank/train.csv",category="emobank"), shuffle=True, batch_size=BATCH_SIZE)
     emobank_val = DataLoader(DatasetModule(PATH=f"{DATA_DIR}Emobank/val.csv",category="emobank"), shuffle=False, batch_size=BATCH_SIZE)
@@ -413,8 +413,8 @@ if __name__ == "__main__":
     torch.cuda.empty_cache()
     model.load_state_dict(torch.load(best_model_path))
 
-    senwave_test = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/test.csv",category="senwave"), shuffle=False, batch_size=BATCH_SIZE)
-    emobank_test = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/Emobank/test.csv",category="emobank"), shuffle=False, batch_size=BATCH_SIZE)
+    senwave_test = DataLoader(DatasetModule(PATH=f"{DATA_DIR}test.csv",category="senwave"), shuffle=False, batch_size=BATCH_SIZE)
+    emobank_test = DataLoader(DatasetModule(PATH=f"{DATA_DIR}Emobank/test.csv",category="emobank"), shuffle=False, batch_size=BATCH_SIZE)
 
     test_loss = {"VAD":[],"Emotions":[]}
     test_acc = {"VAD":[],"Emotions":[]}
