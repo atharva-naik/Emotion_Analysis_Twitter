@@ -139,7 +139,7 @@ class DatasetModule(Dataset) :
     def get_emobank(self) :
         self.sentences = []
         self.targets = []
-        self.emotions = ["Valence","Arousal","Dominance"]
+        self.emotions = ["V","A","D"]
         for i in tqdm(range(len(self.data))) :
             item = self.data[i]
             self.sentences.append(clean_tweets(item['text']))
