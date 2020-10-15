@@ -142,7 +142,7 @@ class DatasetModule(Dataset) :
         self.emotions = ["Valence","Arousal","Dominance"]
         for i in tqdm(range(len(self.data))) :
             item = self.data[i]
-            self.sentences.append(clean_tweets(item['Tweet']))
+            self.sentences.append(clean_tweets(item['text']))
             self.targets.append(self.get_target([item[k] for k in self.emotions]))
         self.encode()
         if EMPATH :
