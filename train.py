@@ -325,7 +325,7 @@ if __name__ == "__main__":
 
     scheduler = None
     if USE_SCHEDULER :
-        total_steps = len(train_dataloader) * EPOCHS
+        total_steps = len(max(len(senwave_train), len(emobank_train))) * EPOCHS
         scheduler = get_linear_schedule_with_warmup(optimizer,
                                     num_warmup_steps = int(total_steps*0.06),
                                     num_training_steps = total_steps)
