@@ -132,8 +132,10 @@ class DatasetModule(Dataset) :
         else :
             self.tokenizer = AutoTokenizer.from_pretrained("roberta-base")
         if self.category == 'emobank' :
+            print("Loading VAD...")
             self.get_emobank()
         else :
+            print("Loading Senwave...")
             self.get_senwave()
 
     def get_emobank(self) :
@@ -142,7 +144,9 @@ class DatasetModule(Dataset) :
         self.emotions = ["V","A","D"]
         for i in tqdm(range(len(self.data))) :
             item = self.data[i]
-            self.sentences.append(clean_tweets(item['text']))
+            clean_tweet = clean_tweets(item['text'])
+            if clean_tweet == "" : continue
+            self.sentences.append(clean_tweet)
             self.targets.append(self.get_target([item[k] for k in self.emotions]))
         self.encode()
         if EMPATH :
