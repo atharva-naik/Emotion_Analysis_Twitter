@@ -297,8 +297,8 @@ def accuracy_emotions(output, target) :
 def accuracy_VAD(output, target) :
     output = output.cpu()
     target = target.cpu()
-    output, _ = pearsonr(target, output)
-    return output
+    output = [pearsonr(target[:,i], output[:,i])[0] for i in range(output.shape[1])]
+    return torch.tensor(output)
 
 def run_model(model, batch, category) :
     input_ids = batch[0].to(DEVICE)
@@ -440,7 +440,7 @@ if __name__ == "__main__":
                 'Total Validation Loss' : sum(val_loss["VAD"])/len(val_loss["VAD"]) + sum(val_loss["Emotion"])/len(val_loss["Emotion"]),
                 'VAD training_loss' : sum(train_loss["VAD"])/len(train_loss["VAD"]),
                 'VAD validation_loss' : sum(val_loss["VAD"])/len(val_loss["VAD"]),
-                'VAD validation_r2' : sum(val_acc["VAD"])/len(val_acc["VAD"]),
+                'VAD validation_r2' : torch.stack(val_acc["VAD"], dim=0).mean(dim=0).tolist(),
                 'Emotion training_loss' : sum(train_loss["Emotion"])/len(train_loss["Emotion"]),
                 'Emotion validation_loss' : sum(val_loss["Emotion"])/len(val_loss["Emotion"]),
                 'Emotion validation_acc': temp[0],
@@ -489,7 +489,7 @@ if __name__ == "__main__":
                 'Total Validation Loss' : sum(val_loss["VAD"])/len(val_loss["VAD"]) + sum(val_loss["Emotion"])/len(val_loss["Emotion"]),
                 'VAD training_loss' : sum(train_loss["VAD"])/len(train_loss["VAD"]),
                 'VAD validation_loss' : sum(val_loss["VAD"])/len(val_loss["VAD"]),
-                'VAD validation_r2' : sum(val_acc["VAD"])/len(val_acc["VAD"]),
+                'VAD validation_r2' : torch.stack(test_acc["VAD"], dim=0).mean(dim=0).tolist(),
                 'Emotion training_loss' : sum(train_loss["Emotion"])/len(train_loss["Emotion"]),
                 'Emotion validation_loss' : sum(val_loss["Emotion"])/len(val_loss["Emotion"]),
                 'Emotion validation_acc': temp[0],
