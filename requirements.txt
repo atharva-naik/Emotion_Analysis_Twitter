@@ -2,7 +2,7 @@ seaborn
 matplotlib
 torch
 pandas
-transformers
+transformers==3.3
 contractions
 emoji
 tokenizer
