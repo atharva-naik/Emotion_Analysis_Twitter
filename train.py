@@ -469,23 +469,23 @@ if __name__ == "__main__":
     test_acc = {"VAD":[],"Emotion":[]}
     model.eval()
     for i, batch in enumerate(senwave_test) :
-            with torch.no_grad() :
-                target = batch[5].to(DEVICE) if ACTIVATION == "bce" else batch[3].to(DEVICE)
-                output = run_model(model, batch, "Emotion")
-                loss = loss_fn(output, target)
-                target = batch[5].to(DEVICE)
-                acc = accuracy_emotions(output, target)
-                test_loss["Emotion"].append(loss.item())
-                test_acc["Emotion"].append(acc)
+        with torch.no_grad() :
+            target = batch[5].to(DEVICE) if ACTIVATION == "bce" else batch[3].to(DEVICE)
+            output = run_model(model, batch, "Emotion")
+            loss = loss_fn(output, target)
+            target = batch[5].to(DEVICE)
+            acc = accuracy_emotions(output, target)
+            test_loss["Emotion"].append(loss.item())
+            test_acc["Emotion"].append(acc)
 
-        for i, batch in enumerate(emobank_test) :
-            with torch.no_grad() :
-                target = batch[3].to(DEVICE)
-                output = run_model(model, batch, "VAD")
-                loss = VAD_loss_fn(output, target)
-                acc = accuracy_VAD(output, target)
-                test_loss["VAD"].append(loss.item())
-                test_acc["VAD"].append(acc)
+    for i, batch in enumerate(emobank_test) :
+        with torch.no_grad() :
+            target = batch[3].to(DEVICE)
+            output = run_model(model, batch, "VAD")
+            loss = VAD_loss_fn(output, target)
+            acc = accuracy_VAD(output, target)
+            test_loss["VAD"].append(loss.item())
+            test_acc["VAD"].append(acc)
 
     temp = torch.stack(test_acc["Emotion"], dim=0).mean(dim=0).tolist()
     test_stats = {
