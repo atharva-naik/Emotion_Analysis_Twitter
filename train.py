@@ -330,7 +330,7 @@ if __name__ == "__main__":
             senwave_test = temp_dict["senwave_test"]
             emobank_train = temp_dict["emobank_train"]
             emobank_val = temp_dict["emobank_val"]
-            emobank_test = temp_dict["senwave_test"]
+            emobank_test = temp_dict["emobank_test"]
     else :
         senwave_train = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/train.csv",category="senwave"), shuffle=True, batch_size=BATCH_SIZE)
         senwave_val = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/val.csv",category="senwave"), shuffle=False, batch_size=BATCH_SIZE)
@@ -338,7 +338,7 @@ if __name__ == "__main__":
         emobank_train = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/Emobank/train.csv",category="emobank"), shuffle=True, batch_size=BATCH_SIZE)
         emobank_val = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/Emobank/val.csv",category="emobank"), shuffle=False, batch_size=BATCH_SIZE)
 
-        senwave_test = DataLoader(DatasetModule(PATH=f"{DATA_DIR}test.csv",category="senwave"), shuffle=False, batch_size=BATCH_SIZE)
+        senwave_test = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/test.csv",category="senwave"), shuffle=False, batch_size=BATCH_SIZE)
         emobank_test = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/Emobank/test.csv",category="emobank"), shuffle=False, batch_size=BATCH_SIZE)
 
         if SAVE_PICKLE :
