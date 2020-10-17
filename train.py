@@ -41,7 +41,7 @@ parser.add_argument('--wd', type=float, default=0.01)
 parser.add_argument('--use_scheduler', action="store_true")
 parser.add_argument('--use_dropout', action="store_true")
 parser.add_argument('--dropout_rate', type=float, default=0.2)
-parser.add_argument('--lambda', type=float, default=0.5)
+parser.add_argument('--VAD_wt', type=float, default=0.5)
 parser.add_argument('--epochs', type=int, default=5)
 parser.add_argument('--seed', type=int, default=40)
 
@@ -84,7 +84,7 @@ L2 = args.l2
 WD = args.wd
 USE_DROPOUT = args.use_dropout
 DROPOUT_RATE = args.dropout_rate
-LAMBDA = args.lambda
+VAD_wt = args.VAD_wt
 
 params = {
         "USE_GPU " : USE_GPU,
@@ -108,7 +108,7 @@ params = {
         "DEVICE": DEVICE,
         "LOAD_PICKLE": LOAD_PICKLE,
         "SAVE_PICKLE": SAVE_PICKLE,
-        "LAMBDA": LAMBDA
+        "VAD_wt": VAD_wt
 }
 print(json.dumps(params, indent=4))
 with open(f"{SAVE_DIR}/{EXP_NAME}/hp.json","w") as fin :
@@ -402,7 +402,7 @@ if __name__ == "__main__":
             emobank_output = run_model(model, emobank_batch, "VAD")
             VAD_loss = VAD_loss_fn(emobank_output, target.float())
 
-            loss = (LAMBDA*VAD_loss + (1-LAMBDA)*emotion_loss).float()
+            loss = (VAD_wt*VAD_loss + (1-VAD_wt)*emotion_loss).float()
             loss.backward()
 
             optimizer.step()
