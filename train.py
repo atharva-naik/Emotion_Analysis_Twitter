@@ -28,6 +28,8 @@ parser.add_argument('--use_gpu', action="store_true")
 parser.add_argument('--encoder', type=str, default="roberta")
 parser.add_argument('--data_dir',type=str, default="data/")
 parser.add_argument('--save_dir',type=str, default="saved_models")
+parser.add_argument('--load_pickle', type=str, default=None)
+parser.add_argument('--save_pickle', action="store_true")
 parser.add_argument('--use_empath', action="store_true")
 parser.add_argument('--lr', type=float, default=2e-5)
 parser.add_argument('--batch_size', type=int, default=32)
@@ -58,6 +60,12 @@ if not os.path.exists(os.path.join(SAVE_DIR,EXP_NAME)) :
 DATA_DIR = args.data_dir
 if not os.path.exists(SAVE_DIR) :
     raise Exception("Incorrect path to dataset")
+
+LOAD_PICKLE = args.load_pickle
+if LOAD_PICKLE is not None and not os.path.exists(LOAD_PICKLE) :
+    raise Exception("Incorrect path to dataset")
+SAVE_PICKLE = args.save_pickle
+
 
 ENCODER = args.encoder
 EPOCHS = args.epochs
@@ -95,9 +103,11 @@ params = {
         "WD" : WD,
         "USE_DROPOUT" : USE_DROPOUT,
         "DROPOUT_RATE" : DROPOUT_RATE,
-        "DEVICE": DEVICE
+        "DEVICE": DEVICE,
+        "LOAD_PICKLE": LOAD_PICKLE,
+        "SAVE_PICKLE": SAVE_PICKLE
 }
-print(json.dumps(params))
+print(json.dumps(params, indent=4))
 with open(f"{SAVE_DIR}/{EXP_NAME}/hp.json","w") as fin :
     json.dump(params, fin, indent=4)
 
@@ -287,8 +297,6 @@ def accuracy_emotions(output, target) :
 def accuracy_VAD(output, target) :
     output = output.cpu()
     target = target.cpu()
-    print(output)
-    print(target)
     output, _ = pearsonr(target, output)
     return output
 
@@ -303,12 +311,46 @@ def run_model(model, batch, category) :
     return model(input_ids, attn_masks, token_type_ids, source_lengths, lexicon_features, category)
 
 if __name__ == "__main__":
-    senwave_train = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/train.csv",category="senwave"), shuffle=True, batch_size=BATCH_SIZE)
-    senwave_val = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/val.csv",category="senwave"), shuffle=False, batch_size=BATCH_SIZE)
+    
+    senwave_train = None
+    senwave_val = None
+    senwave_test = None
+    emobank_train = None
+    emobank_val = None
+    emobank_test = None
 
-    emobank_train = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/Emobank/train.csv",category="emobank"), shuffle=True, batch_size=BATCH_SIZE)
-    emobank_val = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/Emobank/val.csv",category="emobank"), shuffle=False, batch_size=BATCH_SIZE)
+    if LOAD_PICKLE is not None :
+        with open(LOAD_PICKLE,"rb") as fin :
+            temp_dict = pickle.load(fin)
+            senwave_train = temp_dict["senwave_train"]
+            senwave_val = temp_dict["senwave_val"]
+            senwave_test = temp_dict["senwave_test"]
+            emobank_train = temp_dict["emobank_train"]
+            emobank_val = temp_dict["emobank_val"]
+            emobank_test = temp_dict["senwave_test"]
+    else :
+        senwave_train = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/train.csv",category="senwave"), shuffle=True, batch_size=BATCH_SIZE)
+        senwave_val = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/val.csv",category="senwave"), shuffle=False, batch_size=BATCH_SIZE)
 
+        emobank_train = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/Emobank/train.csv",category="emobank"), shuffle=True, batch_size=BATCH_SIZE)
+        emobank_val = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/Emobank/val.csv",category="emobank"), shuffle=False, batch_size=BATCH_SIZE)
+
+        senwave_test = DataLoader(DatasetModule(PATH=f"{DATA_DIR}test.csv",category="senwave"), shuffle=False, batch_size=BATCH_SIZE)
+        emobank_test = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/Emobank/test.csv",category="emobank"), shuffle=False, batch_size=BATCH_SIZE)
+
+        if SAVE_PICKLE :
+            print("Saving data.....")
+            temp_dict = {
+                "senwave_train" : senwave_train,
+                "senwave_val" : senwave_val,
+                "senwave_test" : senwave_test,
+                "emobank_train" : emobank_train,
+                "emobank_val" : emobank_val,
+                "emobank_test" : emobank_test,
+            }
+            with open("dataset.pkl","wb") as fin :
+                pickle.dump(temp_dict,fin)
+    
     model = Net().to(DEVICE)
     loss_fn = nn.BCELoss() if ACTIVATION == 'bce' else nn.MultiLabelMarginLoss()
     VAD_loss_fn = nn.MSELoss()
@@ -337,7 +379,7 @@ if __name__ == "__main__":
     best_model_path = None
 
     for epoch_i in trange(EPOCHS) :
-#        print('======== Epoch {:} / {:} ========'.format(epoch_i + 1, EPOCHS))
+        print('======== Epoch {:} / {:} ========'.format(epoch_i + 1, EPOCHS))
         num_batches = max(len(senwave_train), len(emobank_train))
         senwave_ = list(enumerate(senwave_train))
         emobank_ = list(enumerate(emobank_train))
@@ -419,9 +461,6 @@ if __name__ == "__main__":
     model = Net().to(DEVICE)
     torch.cuda.empty_cache()
     model.load_state_dict(torch.load(best_model_path))
-
-    senwave_test = DataLoader(DatasetModule(PATH=f"{DATA_DIR}test.csv",category="senwave"), shuffle=False, batch_size=BATCH_SIZE)
-    emobank_test = DataLoader(DatasetModule(PATH=f"{DATA_DIR}Emobank/test.csv",category="emobank"), shuffle=False, batch_size=BATCH_SIZE)
 
     test_loss = {"VAD":[],"Emotion":[]}
     test_acc = {"VAD":[],"Emotion":[]}
