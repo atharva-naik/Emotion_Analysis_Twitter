@@ -45,6 +45,11 @@ parser.add_argument('--VAD_wt', type=float, default=0.5)
 parser.add_argument('--epochs', type=int, default=5)
 parser.add_argument('--seed', type=int, default=40)
 
+parser.add_argument('--use_hierarchy', action="store_true")
+parser.add_argument('--use_successive_reg', action="store_true")
+parser.add_argument('--use_connection', action="store_true")
+parser.add_argument('--successive_reg_delta', type=float, default=0.1)
+
 args = parser.parse_args()
 
 SEED = args.seed
@@ -86,6 +91,11 @@ USE_DROPOUT = args.use_dropout
 DROPOUT_RATE = args.dropout_rate
 VAD_wt = args.VAD_wt
 
+HIERARCHY = args.use_hierarchy
+SUCCESSIVE_REG = args.use_successive_reg
+USE_CONNECTION = args.use_connection
+SUCCESSIVE_REG_DELTA = args.successive_reg_delta
+
 params = {
         "USE_GPU " : USE_GPU,
         "EXP_NAME" : EXP_NAME,
@@ -108,7 +118,11 @@ params = {
         "DEVICE": DEVICE,
         "LOAD_PICKLE": LOAD_PICKLE,
         "SAVE_PICKLE": SAVE_PICKLE,
-        "VAD_wt": VAD_wt
+        "VAD_wt": VAD_wt,
+        "HIERARCHY" : HIERARCHY,
+        "SUCCESSIVE_REG" : SUCCESSIVE_REG,
+        "USE_CONNECTION" : USE_CONNECTION,
+        "SUCCESSIVE_REG_DELTA" : SUCCESSIVE_REG_DELTA,
 }
 print(json.dumps(params, indent=4))
 with open(f"{SAVE_DIR}/{EXP_NAME}/hp.json","w") as fin :
@@ -252,12 +266,15 @@ class Net(nn.Module) :
 
         if EMPATH :
             self.embed_size += 194
-        self.num_classes_1 = 11
-        self.num_classes_2 = 3
+        self.num_classes_1 = 3
+        self.num_classes_2 = 11
         print(f"Embeddings length: {self.embed_size}")
 
         self.fc_1 = nn.Linear(self.embed_size, self.num_classes_1)
-        self.fc_2 = nn.Linear(self.embed_size, self.num_classes_2)
+        if HIERARCHY :
+            self.fc_2 = nn.Linear(self.num_classes_1, self.num_classes_2)
+        else :
+            self.fc_2 = nn.Linear(self.embed_size, self.num_classes_2)
         self.tanh = nn.Tanh()
         if USE_DROPOUT :
             self.dropout = nn.Dropout(p=DROPOUT_RATE)
@@ -273,7 +290,7 @@ class Net(nn.Module) :
         return sentences
 
     def forward_VAD(self,sentences) :
-        sentences = self.fc_2(sentences)
+        sentences = self.fc_1(sentences)
         sentences = OUTPUT_FN(sentences)
         if ACTIVATION == 'bce' :
             sentences = sentences*4.0+1.0
@@ -282,7 +299,11 @@ class Net(nn.Module) :
         return sentences
 
     def forward_emotions(self,sentences) :
-        sentences = self.fc_1(sentences)
+        if HIERARCHY :
+            sentences = forward_VAD(sentences)
+            if not USE_CONNECTION :
+                sentences = sentences.detach()
+        sentences = self.fc_2(sentences)
         sentences = OUTPUT_FN(sentences)
         return sentences
 
@@ -389,23 +410,47 @@ if __name__ == "__main__":
         model.train()
         train_loss = {"VAD":[],"Emotion":[]}
         VAD_loss, emotion_loss = None, None
+        history = None
+        
         for i in trange(num_batches) :
             model.zero_grad()
-            
-            senwave_batch = senwave_[i%len(senwave_)][1]
-            target = senwave_batch[5].to(DEVICE) if ACTIVATION == "bce" else senwave_batch[3].to(DEVICE)
-            senwave_output = run_model(model, senwave_batch, "Emotion")
-            emotion_loss = loss_fn(senwave_output, target.long())
-            
-            emobank_batch = emobank_[i%len(emobank_)][1]
-            target = emobank_batch[3].to(DEVICE)
-            emobank_output = run_model(model, emobank_batch, "VAD")
-            VAD_loss = VAD_loss_fn(emobank_output, target.float())
+            if HIERARCHY :
+                
+                emobank_batch = emobank_[i%len(emobank_)][1]
+                target = emobank_batch[3].to(DEVICE)
+                emobank_output = run_model(model, emobank_batch, "VAD")
+                VAD_loss = VAD_loss_fn(emobank_output, target.float())
+                VAD_loss.backward()
+                optimizer.step()
+                
+                model.zero_grad()
+                senwave_batch = senwave_[i%len(senwave_)][1]
+                target = senwave_batch[5].to(DEVICE) if ACTIVATION == "bce" else senwave_batch[3].to(DEVICE)
+                senwave_output = run_model(model, senwave_batch, "Emotion")
+                emotion_loss = loss_fn(senwave_output, target.long())
+                
+                if USE_CONNECTION and SUCCESSIVE_REG and history is not None :
+                    loss = torch.norm(model.fc_1.weight-history.weight) + torch.norm(model.fc_1.bias-history.bias)
+                    emotion_loss += SUCCESSIVE_REG_DELTA*loss
+                emotion_loss.backward()
+                optimizer.step()
+                history = model.fc_1
+            else :   
+                senwave_batch = senwave_[i%len(senwave_)][1]
+                target = senwave_batch[5].to(DEVICE) if ACTIVATION == "bce" else senwave_batch[3].to(DEVICE)
+                senwave_output = run_model(model, senwave_batch, "Emotion")
+                emotion_loss = loss_fn(senwave_output, target.long())
+                
+                emobank_batch = emobank_[i%len(emobank_)][1]
+                target = emobank_batch[3].to(DEVICE)
+                emobank_output = run_model(model, emobank_batch, "VAD")
+                VAD_loss = VAD_loss_fn(emobank_output, target.float())
 
-            loss = (VAD_wt*VAD_loss + (1-VAD_wt)*emotion_loss).float()
-            loss.backward()
+                loss = (VAD_wt*VAD_loss + (1-VAD_wt)*emotion_loss).float()
+                loss.backward()
 
-            optimizer.step()
+                optimizer.step()
+                
             if USE_SCHEDULER :
                  scheduler.step()
 
