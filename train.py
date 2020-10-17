@@ -19,9 +19,9 @@ from transformers import AdamW, get_linear_schedule_with_warmup
 from sklearn.metrics import accuracy_score, f1_score, label_ranking_average_precision_score, hamming_loss, jaccard_score
 from scipy.stats import pearsonr
 from create_features_v2 import clean_tweets
-from tqdm import tqdm
+from tqdm import tqdm, trange
 from empath import Empath
-
+torch.autograd.set_detect_anomaly(True)
 parser = argparse.ArgumentParser()
 parser.add_argument('--exp_name', type=str, default="bert")
 parser.add_argument('--use_gpu', action="store_true")
@@ -147,11 +147,10 @@ class DatasetModule(Dataset) :
             clean_tweet = clean_tweets(item['text'])
             if clean_tweet == "" : continue
             self.sentences.append(clean_tweet)
-            self.targets.append(self.get_target([item[k] for k in self.emotions]))
+            self.targets.append(torch.tensor([float(item[k]) for k in self.emotions], dtype=torch.float))
         self.encode()
         if EMPATH :
             self.lexicon_features = LexiconFeatures().parse_sentences(self.sentences)
-            print(self.lexicon_features.shape)
         print("Dataset size: {}".format(len(self.sentences)))
         self.emobank = True
 
@@ -168,7 +167,6 @@ class DatasetModule(Dataset) :
         self.encode()
         if EMPATH :
             self.lexicon_features = LexiconFeatures().parse_sentences(self.sentences)
-            print(self.lexicon_features.shape)
         print("Dataset size: {}".format(len(self.sentences)))
         self.emobank = False
 
@@ -251,7 +249,7 @@ class Net(nn.Module) :
         if USE_DROPOUT :
             self.dropout = nn.Dropout(p=DROPOUT_RATE)
 
-    def forward(self,input_ids, attn_masks, token_type_ids, source_lengths, lexicon_features, category="VAD") :
+    def forward(self,input_ids, attn_masks, token_type_ids, source_lengths, lexicon_features, category) :
         sentences = self.bert(input_ids, attn_masks, token_type_ids)[0]
         sentences = sentences[:,0,:]
         if USE_DROPOUT :
@@ -265,10 +263,10 @@ class Net(nn.Module) :
         sentences = self.fc_2(sentences)
         sentences = OUTPUT_FN(sentences)
         if ACTIVATION == 'bce' :
-            sentences = sentences*4+1
+            sentences = sentences*4.0+1.0
         else :
-            sentences = sentences*2+3
-            return sentences
+            sentences = sentences*2.0+3.0
+        return sentences
 
     def forward_emotions(self,sentences) :
         sentences = self.fc_1(sentences)
@@ -287,7 +285,11 @@ def accuracy_emotions(output, target) :
     return torch.tensor([acc, micro_f1, macro_f1, jacc, lrap, hamming])
 
 def accuracy_VAD(output, target) :
-    output = pearsonr(target, output)
+    output = output.cpu()
+    target = target.cpu()
+    print(output)
+    print(target)
+    output, _ = pearsonr(target, output)
     return output
 
 def run_model(model, batch, category) :
@@ -325,7 +327,7 @@ if __name__ == "__main__":
 
     scheduler = None
     if USE_SCHEDULER :
-        total_steps = len(max(len(senwave_train), len(emobank_train))) * EPOCHS
+        total_steps = max(len(senwave_train), len(emobank_train)) * EPOCHS
         scheduler = get_linear_schedule_with_warmup(optimizer,
                                     num_warmup_steps = int(total_steps*0.06),
                                     num_training_steps = total_steps)
@@ -334,28 +336,28 @@ if __name__ == "__main__":
     best_save = 1e8
     best_model_path = None
 
-    for epoch_i in range(EPOCHS) :
-        print('======== Epoch {:} / {:} ========'.format(epoch_i + 1, EPOCHS))
+    for epoch_i in trange(EPOCHS) :
+#        print('======== Epoch {:} / {:} ========'.format(epoch_i + 1, EPOCHS))
         num_batches = max(len(senwave_train), len(emobank_train))
         senwave_ = list(enumerate(senwave_train))
         emobank_ = list(enumerate(emobank_train))
         model.train()
-        train_loss = {"VAD":[],"Emotions":[]}
+        train_loss = {"VAD":[],"Emotion":[]}
         VAD_loss, emotion_loss = None, None
-        for i in tqdm(range(num_batches)) :
+        for i in trange(num_batches) :
             model.zero_grad()
-
+            
             senwave_batch = senwave_[i%len(senwave_)][1]
-            target = batch[5].to(DEVICE) if ACTIVATION == "bce" else batch[3].to(DEVICE)
-            output = run_model(model, senwave_batch, "senwave")
-            emotion_loss = loss_fn(output, target)
-
+            target = senwave_batch[5].to(DEVICE) if ACTIVATION == "bce" else senwave_batch[3].to(DEVICE)
+            senwave_output = run_model(model, senwave_batch, "Emotion")
+            emotion_loss = loss_fn(senwave_output, target.long())
+            
             emobank_batch = emobank_[i%len(emobank_)][1]
-            target = batch[3].to(DEVICE)
-            output = run_model(model, emobank_batch, "emobank")
-            VAD_loss = VAD_loss_fn(output, target)
+            target = emobank_batch[3].to(DEVICE)
+            emobank_output = run_model(model, emobank_batch, "VAD")
+            VAD_loss = VAD_loss_fn(emobank_output, target.float())
 
-            loss = VAD_loss + emotion_loss
+            loss = (VAD_loss + emotion_loss).float()
             loss.backward()
 
             optimizer.step()
@@ -363,41 +365,42 @@ if __name__ == "__main__":
                  scheduler.step()
 
             if i%50 == 0 :
-                print("Batch: {} VAD_Loss: {} Emotion_loss Total_Loss: {} ".format(i, VAD_loss, emotion_loss, loss))
+                print("Batch: {} VAD_Loss: {} Emotion_loss: {} Total_Loss: {} ".format(i, VAD_loss, emotion_loss, loss))
 
             train_loss["VAD"].append(VAD_loss.item())
             train_loss["Emotion"].append(emotion_loss.item())
 
 
-        val_loss = {"VAD":[],"Emotions":[]}
-        val_acc = {"VAD":[],"Emotions":[]}
+        val_loss = {"VAD":[],"Emotion":[]}
+        val_acc = {"VAD":[],"Emotion":[]}
         model.eval()
         for i, batch in enumerate(senwave_val) :
             with torch.no_grad() :
                 target = batch[5].to(DEVICE) if ACTIVATION == "bce" else batch[3].to(DEVICE)
-                output = run_model(model, batch)
+                output = run_model(model, batch, "Emotion")
                 loss = loss_fn(output, target)
+                target = batch[5].to(DEVICE)
                 acc = accuracy_emotions(output, target)
-                val_loss["Emotions"].append(loss.item())
-                val_acc["Emotions"].append(acc)
+                val_loss["Emotion"].append(loss.item())
+                val_acc["Emotion"].append(acc)
 
         for i, batch in enumerate(emobank_val) :
             with torch.no_grad() :
                 target = batch[3].to(DEVICE)
-                output = run_model(model, batch)
+                output = run_model(model, batch, "VAD")
                 loss = VAD_loss_fn(output, target)
                 acc = accuracy_VAD(output, target)
                 val_loss["VAD"].append(loss.item())
-                val_acc["VAD"].append(accuracy(acc))
+                val_acc["VAD"].append(acc)
 
         temp = torch.stack(val_acc["Emotion"], dim=0).mean(dim=0).tolist()
         training_stats.append({
-                'Total Validation Loss' : sum(val_loss["VAD"])/len(train_loss["VAD"]) + sum(val_loss["Emotion"])/len(train_loss["Emotion"]),
+                'Total Validation Loss' : sum(val_loss["VAD"])/len(val_loss["VAD"]) + sum(val_loss["Emotion"])/len(val_loss["Emotion"]),
                 'VAD training_loss' : sum(train_loss["VAD"])/len(train_loss["VAD"]),
-                'VAD validation_loss' : sum(val_loss["VAD"])/len(train_loss["VAD"]),
-                'VAD validation_r2' : torch.stack(val_acc["VAD"], dim=0).mean(dim=0).tolist(),
+                'VAD validation_loss' : sum(val_loss["VAD"])/len(val_loss["VAD"]),
+                'VAD validation_r2' : sum(val_acc["VAD"])/len(val_acc["VAD"]),
                 'Emotion training_loss' : sum(train_loss["Emotion"])/len(train_loss["Emotion"]),
-                'Emotion validation_loss' : sum(val_loss["Emotion"])/len(train_loss["Emotion"]),
+                'Emotion validation_loss' : sum(val_loss["Emotion"])/len(val_loss["Emotion"]),
                 'Emotion validation_acc': temp[0],
                 'Emotion validation_micro_f1': temp[1],
                 'Emotion validation_macro_f1': temp[2],
@@ -420,39 +423,42 @@ if __name__ == "__main__":
     senwave_test = DataLoader(DatasetModule(PATH=f"{DATA_DIR}test.csv",category="senwave"), shuffle=False, batch_size=BATCH_SIZE)
     emobank_test = DataLoader(DatasetModule(PATH=f"{DATA_DIR}Emobank/test.csv",category="emobank"), shuffle=False, batch_size=BATCH_SIZE)
 
-    test_loss = {"VAD":[],"Emotions":[]}
-    test_acc = {"VAD":[],"Emotions":[]}
+    test_loss = {"VAD":[],"Emotion":[]}
+    test_acc = {"VAD":[],"Emotion":[]}
     model.eval()
     for i, batch in enumerate(senwave_test) :
         with torch.no_grad() :
             target = batch[5].to(DEVICE) if ACTIVATION == "bce" else batch[3].to(DEVICE)
-            output = run_model(model, batch)
+            output = run_model(model, batch,"Emotion")
             loss = loss_fn(output, target)
+            target = batch[5].to(DEVICE)
             acc = accuracy_emotions(output, target)
-            test_loss["Emotions"].append(loss.item())
-            test_acc["Emotions"].append(acc)
+            test_loss["Emotion"].append(loss.item())
+            test_acc["Emotion"].append(acc)
 
     for i, batch in enumerate(emobank_test) :
         with torch.no_grad() :
             target = batch[3].to(DEVICE)
-            output = run_model(model, batch)
+            output = run_model(model, batch,"VAD")
             loss = VAD_loss_fn(output, target)
             acc = accuracy_VAD(output, target)
             test_loss["VAD"].append(loss.item())
-            test_acc["VAD"].append(accuracy(acc))
+            test_acc["VAD"].append(acc)
 
     temp = torch.stack(test_acc["Emotion"], dim=0).mean(dim=0).tolist()
     training_stats.append({
-                'Total test Loss' : sum(test_loss["VAD"])/len(train_loss["VAD"]) + sum(test_loss["Emotion"])/len(train_loss["Emotion"]),
-                'VAD test_loss' : sum(test_loss["VAD"])/len(train_loss["VAD"]),
-                'VAD test_r2' : torch.stack(test_acc["VAD"], dim=0).mean(dim=0).tolist(),
-                'Emotion test_loss' : sum(test_loss["Emotion"])/len(train_loss["Emotion"]),
-                'Emotion test_acc': temp[0],
-                'Emotion test_micro_f1': temp[1],
-                'Emotion test_macro_f1': temp[2],
-                'Emotion test_jacc': temp[3],
-                'Emotion test_lrap': temp[4],
-                'Emotion test_hamming': temp[5]
+                'Total Validation Loss' : sum(val_loss["VAD"])/len(val_loss["VAD"]) + sum(val_loss["Emotion"])/len(val_loss["Emotion"]),
+                'VAD training_loss' : sum(train_loss["VAD"])/len(train_loss["VAD"]),
+                'VAD validation_loss' : sum(val_loss["VAD"])/len(val_loss["VAD"]),
+                'VAD validation_r2' : sum(val_acc["VAD"])/len(val_acc["VAD"]),
+                'Emotion training_loss' : sum(train_loss["Emotion"])/len(train_loss["Emotion"]),
+                'Emotion validation_loss' : sum(val_loss["Emotion"])/len(val_loss["Emotion"]),
+                'Emotion validation_acc': temp[0],
+                'Emotion validation_micro_f1': temp[1],
+                'Emotion validation_macro_f1': temp[2],
+                'Emotion validation_jacc': temp[3],
+                'Emotion validation_lrap': temp[4],
+                'Emotion validation_hamming': temp[5]
         })
     print(json.dumps(training_stats[-1], indent=4))
     with open(f"{SAVE_DIR}/{EXP_NAME}/test.json","w") as fin :
