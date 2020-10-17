@@ -280,6 +280,15 @@ class Net(nn.Module) :
         sentences = OUTPUT_FN(sentences)
         return sentences
 
+    def init_weights(self, dist='normal', bias_val=0.01):
+        # refence used: https://stackoverflow.com/questions/49433936/how-to-initialize-weights-in-pytorch
+        for m in [self.fc_1, self.fc_2]:
+            if dist == 'uniform':
+                torch.nn.init.xavier_uniform(m.weight)
+            elif dist == 'normal':
+                torch.nn.init.xavier_normal_(m.weight)
+            m.bias.data.fill_(bias_val)
+
 def accuracy_emotions(output, target) :
     lrap = label_ranking_average_precision_score(target.cpu(), output.cpu())
     output = (output >= THRESHOLD).long().cpu()
@@ -313,7 +322,7 @@ if __name__ == "__main__":
     emobank_val = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/Emobank/val.csv",category="emobank"), shuffle=False, batch_size=BATCH_SIZE)
 
     model = Net().to(DEVICE)
-    torch.nn.init.xavier_normal_(model.parameters())
+    model.init_weights(dist='normal')
     loss_fn = nn.BCELoss() if ACTIVATION == 'bce' else nn.MultiLabelMarginLoss()
     VAD_loss_fn = nn.MSELoss()
 
