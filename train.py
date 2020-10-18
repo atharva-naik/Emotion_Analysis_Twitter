@@ -1,31 +1,36 @@
 import os
+import re
 import json
 import math
-import argparse
+import torch
 import codecs
 import random
-import torch
-import tokenizer 
 import pickle
-import numpy as np
+import argparse
+import tokenizer 
 import itertools
-from scipy import stats
+import numpy as np
 import pandas as pd
+from tqdm import tqdm
 import torch.nn as nn
-import torch.optim as optim
-from transformers import AutoModel, AutoTokenizer
-from torch.utils.data import TensorDataset, DataLoader, Dataset, random_split
-from transformers import AdamW, get_linear_schedule_with_warmup
-from sklearn.metrics import accuracy_score, f1_score, label_ranking_average_precision_score, hamming_loss, jaccard_score
-from scipy.stats import pearsonr
-from create_features_v2 import clean_tweets
-from tqdm import tqdm, trange
+from scipy import stats
 from empath import Empath
+from emoji import demojize
+import torch.optim as optim
+from scipy.stats import pearsonr
+from nltk.tokenize import TweetTokenizer
+from create_features_v2 import clean_tweets
+from normalize_tweets import normalizeTweet
+from transformers import AutoModel, AutoTokenizer
+from transformers import AdamW, get_linear_schedule_with_warmup
+from torch.utils.data import TensorDataset, DataLoader, Dataset, random_split
+from sklearn.metrics import accuracy_score, f1_score, label_ranking_average_precision_score, hamming_loss, jaccard_score
+
 torch.autograd.set_detect_anomaly(True)
 parser = argparse.ArgumentParser()
 parser.add_argument('--exp_name', type=str, default="bert")
 parser.add_argument('--use_gpu', action="store_true")
-parser.add_argument('--encoder', type=str, default="roberta")
+parser.add_argument('--encoder', type=str, default="bertweet")
 parser.add_argument('--data_dir',type=str, default="data/")
 parser.add_argument('--save_dir',type=str, default="saved_models")
 parser.add_argument('--load_pickle', type=str, default=None)
@@ -157,7 +162,7 @@ class DatasetModule(Dataset) :
         if ENCODER == 'bert' :
             self.tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
         else :
-            self.tokenizer = AutoTokenizer.from_pretrained("roberta-base")
+            self.tokenizer = AutoTokenizer.from_pretrained("vinai/bertweet-base")
         if self.category == 'emobank' :
             print("Loading VAD...")
             self.get_emobank()
@@ -261,7 +266,7 @@ class Net(nn.Module) :
             self.bert = AutoModel.from_pretrained("bert-base-cased")
             self.embed_size = 768
         else :
-            self.bert = AutoModel.from_pretrained("roberta-base")
+            self.bert = AutoModel.from_pretrained("vinai/bertweet-base")
             self.embed_size = 768
 
         if EMPATH :
@@ -306,6 +311,15 @@ class Net(nn.Module) :
         sentences = self.fc_2(sentences)
         sentences = OUTPUT_FN(sentences)
         return sentences
+
+    def init_weights(self, dist='normal', bias_val=0.01):
+        # refence used: https://stackoverflow.com/questions/49433936/how-to-initialize-weights-in-pytorch
+        for m in [self.fc_1, self.fc_2]:
+            if dist == 'uniform':
+                torch.nn.init.xavier_uniform(m.weight)
+            elif dist == 'normal':
+                torch.nn.init.xavier_normal_(m.weight)
+            m.bias.data.fill_(bias_val)
 
 def accuracy_emotions(output, target) :
     lrap = label_ranking_average_precision_score(target.cpu(), output.cpu())
@@ -376,6 +390,7 @@ if __name__ == "__main__":
                 pickle.dump(temp_dict,fin)
     
     model = Net().to(DEVICE)
+    model.init_weights(dist='normal')
     loss_fn = nn.BCELoss() if ACTIVATION == 'bce' else nn.MultiLabelMarginLoss()
     VAD_loss_fn = nn.MSELoss()
 
