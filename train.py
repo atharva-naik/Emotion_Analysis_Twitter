@@ -30,6 +30,7 @@ torch.autograd.set_detect_anomaly(True)
 parser = argparse.ArgumentParser()
 parser.add_argument('--exp_name', type=str, default="bert")
 parser.add_argument('--use_gpu', action="store_true")
+parser.add_argument('--gpu_id', type=int, default=0)
 parser.add_argument('--encoder', type=str, default="bertweet")
 parser.add_argument('--data_dir',type=str, default="data/")
 parser.add_argument('--save_dir',type=str, default="saved_models")
@@ -64,6 +65,7 @@ torch.manual_seed(SEED)
 torch.cuda.manual_seed(SEED)
 
 USE_GPU = args.use_gpu
+GPU_ID = args.gpu_id
 EXP_NAME = args.exp_name
 SAVE_DIR = args.save_dir
 if not os.path.exists(os.path.join(SAVE_DIR,EXP_NAME)) :
@@ -87,7 +89,7 @@ ACTIVATION = args.activation
 USE_SCHEDULER = args.use_scheduler
 THRESHOLD = 0.33 if ACTIVATION == 'tanh' else 0.5
 OUTPUT_FN = nn.Tanh() if ACTIVATION == 'tanh' else nn.Sigmoid()
-DEVICE = "cuda:0" if torch.cuda.is_available() and USE_GPU else "cpu"
+DEVICE = f"cuda:{GPU_ID}" if torch.cuda.is_available() and USE_GPU else "cpu"
 SAVE_POLICY = args.save_policy
 OPTIM = args.optim
 L2 = args.l2
