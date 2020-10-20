@@ -11,7 +11,7 @@ import tokenizer
 import itertools
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
+from tqdm import tqdm, trange
 import torch.nn as nn
 from scipy import stats
 from empath import Empath
@@ -307,7 +307,7 @@ class Net(nn.Module) :
 
     def forward_emotions(self,sentences) :
         if HIERARCHY :
-            sentences = forward_VAD(sentences)
+            sentences = self.forward_VAD(sentences)
             if not USE_CONNECTION :
                 sentences = sentences.detach()
         sentences = self.fc_2(sentences)
@@ -444,7 +444,7 @@ if __name__ == "__main__":
                 senwave_batch = senwave_[i%len(senwave_)][1]
                 target = senwave_batch[5].to(DEVICE) if ACTIVATION == "bce" else senwave_batch[3].to(DEVICE)
                 senwave_output = run_model(model, senwave_batch, "Emotion")
-                emotion_loss = loss_fn(senwave_output, target.long())
+                emotion_loss = loss_fn(senwave_output, target)
                 
                 if USE_CONNECTION and SUCCESSIVE_REG and history is not None :
                     loss = torch.norm(model.fc_1.weight-history.weight) + torch.norm(model.fc_1.bias-history.bias)
@@ -456,7 +456,7 @@ if __name__ == "__main__":
                 senwave_batch = senwave_[i%len(senwave_)][1]
                 target = senwave_batch[5].to(DEVICE) if ACTIVATION == "bce" else senwave_batch[3].to(DEVICE)
                 senwave_output = run_model(model, senwave_batch, "Emotion")
-                emotion_loss = loss_fn(senwave_output, target.long())
+                emotion_loss = loss_fn(senwave_output, target)
                 
                 emobank_batch = emobank_[i%len(emobank_)][1]
                 target = emobank_batch[3].to(DEVICE)
@@ -472,7 +472,7 @@ if __name__ == "__main__":
                  scheduler.step()
 
             if i%50 == 0 :
-                print("Batch: {} VAD_Loss: {} Emotion_loss: {} Total_Loss: {} ".format(i, VAD_loss, emotion_loss, loss))
+                print("Batch: {} VAD_Loss: {} Emotion_loss: {} Total_Loss: {} ".format(i, VAD_loss, emotion_loss, VAD_loss+emotion_loss))
 
             train_loss["VAD"].append(VAD_loss.item())
             train_loss["Emotion"].append(emotion_loss.item())
