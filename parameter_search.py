@@ -6,26 +6,26 @@ from multiprocessing import Pool
 
 # subprocess.run(['python','train.py'])
 ENCODER = "bert"
-SEED = ['10','20','30','40','50']
+SEED = ['10','20','30','40']
 
 process_1 = "python train.py --exp_name p{} --gpu_id {} --use_gpu --encoder {} --data_dir data/ --load_pickle dataset.pkl --save_dir saved_models_{}_1 --lr {} --batch_size {} --save_policy loss --activation {} --optim {} --l2 --wd {} {} --use_dropout --dropout_rate {} --epochs 10 --seed {}"
 
-# process_2 = "python train.py --exp_name p{} --gpu_id {} --use_gpu --encoder {} --data_dir data/ --load_pickle dataset.pkl --save_dir saved_models_{}_2 --lr {} --batch_size {} --save_policy loss --activation {} --optim {} --l2 --wd {} {} --use_dropout --dropout_rate {} --epochs 10 --seed {} --use_hierarchy"
+process_2 = "python train.py --exp_name p{} --gpu_id {} --use_gpu --encoder {} --data_dir data/ --load_pickle dataset.pkl --save_dir saved_models_{}_2 --lr {} --batch_size {} --save_policy loss --activation {} --optim {} --l2 --wd {} {} --use_dropout --dropout_rate {} --epochs 10 --seed {} --use_hierarchy"
 
-# process_3 = "python train.py --exp_name p{} --gpu_id {} --use_gpu --encoder {} --data_dir data/ --load_pickle dataset.pkl --save_dir saved_models_{}_3 --lr {} --batch_size {} --save_policy loss --activation {} --optim {} --l2 --wd {} {} --use_dropout --dropout_rate {} --epochs 10 --seed {} --use_hierarchy --use_connection --use_successive_reg --successive_reg_delta {}"
+process_3 = "python train.py --exp_name p{} --gpu_id {} --use_gpu --encoder {} --data_dir data/ --load_pickle dataset.pkl --save_dir saved_models_{}_3 --lr {} --batch_size {} --save_policy loss --activation {} --optim {} --l2 --wd {} {} --use_dropout --dropout_rate {} --epochs 10 --seed {} --use_hierarchy --use_connection --use_successive_reg --successive_reg_delta {}"
 
 def run(args) :
-    subprocess.call(process_1.format(*args))
+    subprocess.call(process_2.format(*args).split(), stdout=subprocess.PIPE)
     
 i = 0
 model_stats = []
 LR = [1e-5, 2e-5]
 BATCH_SIZE = [16, 32]
 ACTIVATION = ['tanh', 'bce']
-OPTIM = ['adamw','adam']
+OPTIM = ['adamw']
 WD = [0, 0.01]
 EMPATH = ['--use_empath','']
-DROPOUT = [0,0.2,0.4]
+DROPOUT = [0.2, 0.3]
 
 for seed in SEED :
     for empath in EMPATH :
