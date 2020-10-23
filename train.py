@@ -24,7 +24,7 @@ from create_features_v2 import clean_tweets
 from normalize_tweets import normalizeTweet
 from transformers import AutoModel, AutoTokenizer
 from transformers import AdamW, get_linear_schedule_with_warmup
-from torch.utils.data import TensorDataset, DataLoader, Dataset, random_split
+from torch.utils.data import TensorDataset, DataLoader, Dataset, random_split, ConcatDataset
 from sklearn.metrics import accuracy_score, f1_score, label_ranking_average_precision_score, hamming_loss, jaccard_score
 
 torch.autograd.set_detect_anomaly(True)
@@ -42,7 +42,7 @@ parser.add_argument('--lr', type=float, default=2e-5)
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--save_policy', type=str, default="loss")
 parser.add_argument('--activation', type=str, default="tanh")
-parser.add_argument('--optim', type=str, default="adam")
+parser.add_argument('--optim', type=str, default="adamw")
 parser.add_argument('--l2', action="store_true")
 parser.add_argument('--wd', type=float, default=0.01)
 parser.add_argument('--use_scheduler', action="store_true")
@@ -51,7 +51,7 @@ parser.add_argument('--dropout_rate', type=float, default=0.2)
 parser.add_argument('--VAD_wt', type=float, default=0.5)
 parser.add_argument('--epochs', type=int, default=5)
 parser.add_argument('--seed', type=int, default=40)
-parser.add_argument('--job_type', type=str, default=mtl)
+parser.add_argument('--job_type', type=str, default="mtl")
 parser.add_argument('--final_test', action="store_true")
 
 parser.add_argument('--use_hierarchy', action="store_true")
@@ -232,7 +232,7 @@ class DatasetModule(Dataset) :
             encoded_dict = self.tokenizer.encode_plus(sent,
                                                     add_special_tokens=True,
                                                     max_length=self.max_len,
-                                                    pad_to_max_length="True",
+                                                    padding="max_length",
                                                     return_attention_mask = True,
                                                     return_tensors = 'pt',
                                                     return_token_type_ids = True,
@@ -290,10 +290,13 @@ class Net(nn.Module) :
                 self.fc_2 = nn.Linear(self.num_classes_1+self.embed_size, self.num_classes_2)
             else :
                 self.fc_2 = nn.Linear(self.embed_size, self.num_classes_2)
+            self.layers = [self.fc_1, self.fc_2]
         elif JOB_TYPE == "stl_emotion" :
             self.fc_2 = nn.Linear(self.embed_size, self.num_classes_2)
+            self.layers = [self.fc_2]
         elif JOB_TYPE == "stl_VAD" :
             self.fc_1 = nn.Linear(self.embed_size, self.num_classes_1)
+            self.layers = [self.fc_1]
             
         self.tanh = nn.Tanh()
         # if USE_DROPOUT :
@@ -335,7 +338,7 @@ class Net(nn.Module) :
 
     def init_weights(self, dist='normal', bias_val=0.01):
         # refence used: https://stackoverflow.com/questions/49433936/how-to-initialize-weights-in-pytorch
-        for m in [self.fc_1, self.fc_2]:
+        for m in self.layers :
             if dist == 'uniform':
                 torch.nn.init.xavier_uniform(m.weight)
             elif dist == 'normal':
@@ -412,8 +415,8 @@ if __name__ == "__main__":
                               
     if(FINAL_TEST) :
         print("Loading training and testing data...")
-        senwave_train = DataLoader(ConcatDataset([senwave_train, senwave_eval]), shuffle=True, batch_size=BATCH_SIZE, num_workers=8)
-        emobank_train = DataLoader(ConcatDataset([emobank_train, emobank_eval]), shuffle=True, batch_size=BATCH_SIZE, num_workers=8)
+        senwave_train = DataLoader(ConcatDataset([senwave_train, senwave_val]), shuffle=True, batch_size=BATCH_SIZE, num_workers=8)
+        emobank_train = DataLoader(ConcatDataset([emobank_train, emobank_val]), shuffle=True, batch_size=BATCH_SIZE, num_workers=8)
 
         senwave_test = DataLoader(senwave_test, shuffle=False, batch_size=BATCH_SIZE, num_workers=8)
         emobank_test = DataLoader(emobank_test, shuffle=False, batch_size=BATCH_SIZE, num_workers=8)
