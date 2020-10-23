@@ -3,29 +3,31 @@ import json
 import subprocess
 from subprocess import call
 from multiprocessing import Pool
-
+import random
 # subprocess.run(['python','train.py'])
 ENCODER = "bert"
-SEED = ['10','20','30','40']
-
-process_1 = "python train.py --exp_name p{} --gpu_id {} --use_gpu --encoder {} --data_dir data/ --load_pickle dataset.pkl --save_dir saved_models_{}_1 --lr {} --batch_size {} --save_policy loss --activation {} --optim {} --l2 --wd {} {} --use_dropout --dropout_rate {} --epochs 10 --seed {}"
+#SEED = [random.randint(0,100), random.randint(0,100), random.randint(0,100)]
+SEED = [42]
+print(SEED)
+process_1 = "python train.py --exp_name p{} --gpu_id {} --use_gpu --encoder {} --data_dir data/ --load_pickle dataset.pkl --save_dir saved_models --lr {} --batch_size {} --save_policy loss --activation {} --optim {} --l2 --wd {} {} --use_dropout --dropout_rate {} --epochs 5 --seed {}"
 
 process_2 = "python train.py --exp_name p{} --gpu_id {} --use_gpu --encoder {} --data_dir data/ --load_pickle dataset.pkl --save_dir saved_models_{}_2 --lr {} --batch_size {} --save_policy loss --activation {} --optim {} --l2 --wd {} {} --use_dropout --dropout_rate {} --epochs 10 --seed {} --use_hierarchy"
 
 process_3 = "python train.py --exp_name p{} --gpu_id {} --use_gpu --encoder {} --data_dir data/ --load_pickle dataset.pkl --save_dir saved_models_{}_3 --lr {} --batch_size {} --save_policy loss --activation {} --optim {} --l2 --wd {} {} --use_dropout --dropout_rate {} --epochs 10 --seed {} --use_hierarchy --use_connection --use_successive_reg --successive_reg_delta {}"
 
 def run(args) :
-    subprocess.call(process_2.format(*args).split(), stdout=subprocess.PIPE)
+    subprocess.call(process_1.format(*args).split(), stdout=subprocess.PIPE)
     
 i = 0
 model_stats = []
-LR = [1e-5, 2e-5]
+LR = [1e-5, 2e-5, 5e-5]
 BATCH_SIZE = [16, 32]
-ACTIVATION = ['tanh', 'bce']
+#POCHS = ["2","3","4 --use_scheduler"]
+#ACTIVATION = ['tanh', 'bce']
 OPTIM = ['adamw']
-WD = [0, 0.01]
+WD = [0.01]
 EMPATH = ['--use_empath','']
-DROPOUT = [0.2, 0.3]
+DROPOUT = [0.2]
 
 for seed in SEED :
     for empath in EMPATH :
@@ -34,7 +36,7 @@ for seed in SEED :
                 for dropout in DROPOUT:
                     for optim in OPTIM :
                         for wd in WD :
-                            print(f"Running instances {i+1} {i+2} out of {len(SEED)*len(EMPATH)*len(BATCH_SIZE)*len(OPTIM)*len(WD)*len(LR)*len(DROPOUT)}")  
+                            print(f"Running instances {i+1} {i+2} out of {2*len(SEED)*len(EMPATH)*len(BATCH_SIZE)*len(OPTIM)*len(WD)*len(LR)*len(DROPOUT)}")  
                             args_list = [(i+1,0,ENCODER,ENCODER,lr,batch_size,"bce",optim,wd,empath,dropout, seed),
                                         (i+2,1,ENCODER,ENCODER,lr,batch_size,"tanh",optim,wd,empath,dropout, seed)]
                             p = Pool(processes=2)

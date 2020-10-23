@@ -324,6 +324,8 @@ class Net(nn.Module) :
             m.bias.data.fill_(bias_val)
 
 def accuracy_emotions(output, target) :
+#    print(target)
+ #   print(output)
     lrap = label_ranking_average_precision_score(target.cpu(), output.cpu())
     output = (output >= THRESHOLD).long().cpu()
     target = target.cpu().long()
@@ -369,14 +371,14 @@ if __name__ == "__main__":
             emobank_val = temp_dict["emobank_val"]
             emobank_test = temp_dict["emobank_test"]
     else :
-        senwave_train = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/train.csv",category="senwave"), shuffle=True, batch_size=BATCH_SIZE)
-        senwave_val = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/val.csv",category="senwave"), shuffle=False, batch_size=BATCH_SIZE)
+        senwave_train = DatasetModule(PATH=f"{DATA_DIR}/train.csv",category="senwave")
+        senwave_val = DatasetModule(PATH=f"{DATA_DIR}/val.csv",category="senwave")
 
-        emobank_train = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/Emobank/train.csv",category="emobank"), shuffle=True, batch_size=BATCH_SIZE)
-        emobank_val = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/Emobank/val.csv",category="emobank"), shuffle=False, batch_size=BATCH_SIZE)
+        emobank_train = DatasetModule(PATH=f"{DATA_DIR}/Emobank/train.csv",category="emobank")
+        emobank_val = DatasetModule(PATH=f"{DATA_DIR}/Emobank/val.csv",category="emobank")
 
-        senwave_test = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/test.csv",category="senwave"), shuffle=False, batch_size=BATCH_SIZE)
-        emobank_test = DataLoader(DatasetModule(PATH=f"{DATA_DIR}/Emobank/test.csv",category="emobank"), shuffle=False, batch_size=BATCH_SIZE)
+        senwave_test = DatasetModule(PATH=f"{DATA_DIR}/test.csv",category="senwave")
+        emobank_test = DatasetModule(PATH=f"{DATA_DIR}/Emobank/test.csv",category="emobank")
 
         if SAVE_PICKLE :
             print("Saving data.....")
@@ -388,9 +390,18 @@ if __name__ == "__main__":
                 "emobank_val" : emobank_val,
                 "emobank_test" : emobank_test,
             }
-            with open("dataset.pkl","wb") as fin :
+            with open("dataset_bt.pkl","wb") as fin :
                 pickle.dump(temp_dict,fin)
-    
+
+    senwave_train = DataLoader(senwave_train, shuffle=True, batch_size=BATCH_SIZE)
+    senwave_val = DataLoader(senwave_val, shuffle=False, batch_size=BATCH_SIZE)
+
+    emobank_train = DataLoader(emobank_train, shuffle=True, batch_size=BATCH_SIZE)
+    emobank_val = DataLoader(emobank_val,shuffle=False, batch_size=BATCH_SIZE)
+
+    senwave_test = DataLoader(senwave_test, shuffle=False, batch_size=BATCH_SIZE)
+    emobank_test = DataLoader(emobank_test, shuffle=False, batch_size=BATCH_SIZE)
+
     model = Net().to(DEVICE)
     model.init_weights(dist='normal')
     loss_fn = nn.BCELoss() if ACTIVATION == 'bce' else nn.MultiLabelMarginLoss()
@@ -418,6 +429,7 @@ if __name__ == "__main__":
     training_stats = []
     best_save = 1e8
     best_model_path = None
+    best_epoch = -1
 
     for epoch_i in trange(EPOCHS) :
         print('======== Epoch {:} / {:} ========'.format(epoch_i + 1, EPOCHS))
@@ -519,13 +531,15 @@ if __name__ == "__main__":
 
         if best_save > training_stats[-1]["Total Validation Loss"] :
             best_save = training_stats[-1]["Total Validation Loss"]
-            best_model_path = f"{SAVE_DIR}/{EXP_NAME}/{epoch_i}.ckpt"
+            best_model_path = f"{SAVE_DIR}/{EXP_NAME}/best.ckpt"
+            best_epoch = epoch_i
             torch.save(model.state_dict(), best_model_path)
             print(f"{SAVE_POLICY} : Saving the model : {epoch_i}")
 
     model = Net().to(DEVICE)
     torch.cuda.empty_cache()
     model.load_state_dict(torch.load(best_model_path))
+    os.system(f"rm {best_model_path}")
 
     test_loss = {"VAD":[],"Emotion":[]}
     test_acc = {"VAD":[],"Emotion":[]}
@@ -560,7 +574,8 @@ if __name__ == "__main__":
                 'Emotion test_macro_f1': temp[2],
                 'Emotion test_jacc': temp[3],
                 'Emotion test_lrap': temp[4],
-                'Emotion test_hamming': temp[5]
+                'Emotion test_hamming': temp[5],
+                'EPOCHS': best_epoch
         }
     print(json.dumps(test_stats, indent=4))
     with open(f"{SAVE_DIR}/{EXP_NAME}/test.json","w") as fin :
