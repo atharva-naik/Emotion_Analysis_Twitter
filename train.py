@@ -279,7 +279,7 @@ class Net(nn.Module) :
 
         self.fc_1 = nn.Linear(self.embed_size, self.num_classes_1)
         if HIERARCHY :
-            self.fc_2 = nn.Linear(self.num_classes_1, self.num_classes_2)
+            self.fc_2 = nn.Linear(self.num_classes_1+self.embed_size, self.num_classes_2)
         else :
             self.fc_2 = nn.Linear(self.embed_size, self.num_classes_2)
         self.tanh = nn.Tanh()
@@ -307,7 +307,8 @@ class Net(nn.Module) :
 
     def forward_emotions(self,sentences) :
         if HIERARCHY :
-            sentences = self.forward_VAD(sentences)
+            VAD_predictions = self.forward_VAD(sentences)
+            sentences = torch.cat((sentences,VAD_predictions), dim=0)
             if not USE_CONNECTION :
                 sentences = sentences.detach()
         sentences = self.fc_2(sentences)
@@ -463,7 +464,7 @@ if __name__ == "__main__":
                     emotion_loss += SUCCESSIVE_REG_DELTA*loss
                 emotion_loss.backward()
                 optimizer.step()
-                history = model.fc_1
+                history = (model.fc_1).clone()
             else :   
                 senwave_batch = senwave_[i%len(senwave_)][1]
                 target = senwave_batch[5].to(DEVICE) if ACTIVATION == "bce" else senwave_batch[3].to(DEVICE)
