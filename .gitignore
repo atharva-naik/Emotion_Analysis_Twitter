@@ -2,6 +2,7 @@ venv
 .vscode
 *.pkl
 saved_models/
+bert_mtl/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
