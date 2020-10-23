@@ -39,3 +39,12 @@ Note-1: Plot types: (1)Fixed number of tweets, (2)Fixed time interval, (3)Aspect
 Note-2: By default the aspect term searching is case sensitive
 Note-3: Aspects labels can be supplied in the code
 ```
+### New flags:
+- --save_pickle ; to create dataset_{ENCODER}.pkl file
+- --load_pickle PATH ; path to pickle file
+- --job_type ; mtl, stl_emotion, stl_VAD
+- --final_test ; boolean flag to combine train and val set to generate final test
+
+### Saving scheme:
+- final_test=false, stores best validation epoch
+- final_test=true, stores test result after training on best validation hp.json

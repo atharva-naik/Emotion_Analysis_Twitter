@@ -599,8 +599,8 @@ if __name__ == "__main__":
 
             if best_save > training_stats[-1]["Total Validation Loss"] :
                 best_save = training_stats[-1]["Total Validation Loss"]
-                best_stats = {**training_stats[-1], "epoch": epoch_i}
-                print(f"{SAVE_POLICY} : Saving the model : {epoch_i}")
+                best_stats = {**training_stats[-1], "epoch": epoch_i+1}
+                print(f"{SAVE_POLICY} : Saving the model : {epoch_i+1}")
         else :
             emotion_dict = {}
             VAD_dict = {}
