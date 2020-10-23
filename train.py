@@ -393,7 +393,7 @@ if __name__ == "__main__":
                 "emobank_val" : emobank_val,
                 "emobank_test" : emobank_test,
             }
-            with open("dataset_bt.pkl","wb") as fin :
+            with open(f"dataset_{ENCODER}.pkl","wb") as fin :
                 pickle.dump(temp_dict,fin)
 
     senwave_train = DataLoader(senwave_train, shuffle=True, batch_size=BATCH_SIZE)

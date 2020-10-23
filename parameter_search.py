@@ -10,9 +10,9 @@ save_dir = "bert_mtl"
 SEED = [42]
 print(SEED)
 
-process = "python train.py -W ignore --exp_name p{} --gpu_id {} --use_gpu --encoder {} --data_dir data/ --load_pickle dataset.pkl --save_dir "+ save_dir +" --lr {} --batch_size {} --save_policy loss --activation {} --optim adamw --l2 --wd 0.01 {} --use_dropout --dropout_rate 0.2 --epochs 5 --seed {}"
+process = "python -W ignore train.py --exp_name p{} --gpu_id {} --use_gpu --encoder {} --data_dir data/ --load_pickle dataset.pkl --save_dir "+ save_dir +" --lr {} --batch_size {} --save_policy loss --activation {} --optim adamw --l2 --wd 0.01 {} --use_dropout --dropout_rate 0.2 --epochs 5 --seed {}"
 def run(args) :
-    subprocess.call(process_1.format(*args).split(), stdout=subprocess.PIPE)
+    subprocess.call(process.format(*args).split(), stdout=subprocess.PIPE)
     
 i = 0
 model_stats = []
@@ -26,8 +26,8 @@ for seed in SEED :
         for lr in LR :
             for batch_size in BATCH_SIZE :
                 print(f"Running instances {i+1} {i+2} out of {2*len(SEED)*len(EMPATH)*len(BATCH_SIZE)*len(LR)}")  
-                args_list = [(i+1,0,ENCODER,lr,batch_size,"bce",wd,empath, seed),
-                            (i+2,1,ENCODER,lr,batch_size,"tanh",wd,empath, seed)]
+                args_list = [(i+1,0,ENCODER,lr,batch_size,"bce",empath, seed),
+                            (i+2,1,ENCODER,lr,batch_size,"tanh",empath, seed)]
                 p = Pool(processes=2)
                 p.map(run, args_list)
                 with open(f"{save_dir}/p{i+1}/test.json","r") as f :
