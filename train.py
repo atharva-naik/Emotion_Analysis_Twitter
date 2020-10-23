@@ -418,8 +418,8 @@ if __name__ == "__main__":
         senwave_train = DataLoader(ConcatDataset([senwave_train, senwave_val]), shuffle=True, batch_size=BATCH_SIZE, num_workers=8)
         emobank_train = DataLoader(ConcatDataset([emobank_train, emobank_val]), shuffle=True, batch_size=BATCH_SIZE, num_workers=8)
 
-        senwave_test = DataLoader(senwave_test, shuffle=False, batch_size=BATCH_SIZE, num_workers=8)
-        emobank_test = DataLoader(emobank_test, shuffle=False, batch_size=BATCH_SIZE, num_workers=8)
+        senwave_test = DataLoader(senwave_test, shuffle=False, batch_size=len(senwave_test), num_workers=8)
+        emobank_test = DataLoader(emobank_test, shuffle=False, batch_size=len(emobank_test), num_workers=8)
     else :
         print("Loading training and validation data...")
         senwave_train = DataLoader(senwave_train, shuffle=True, batch_size=BATCH_SIZE, num_workers=8)
@@ -554,6 +554,7 @@ if __name__ == "__main__":
             VAD_dict = {}
             total_loss = 0.0
             if JOB_TYPE == "stl_emotion" or JOB_TYPE == "mtl" :
+                print("Validating emotion...")
                 for i, batch in enumerate(senwave_val) :
                     with torch.no_grad() :
                         target = batch[5].to(DEVICE) if ACTIVATION == "bce" else batch[3].to(DEVICE)
@@ -577,6 +578,7 @@ if __name__ == "__main__":
                 total_loss += sum(val_loss["Emotion"])/len(val_loss["Emotion"]) 
                 
             if JOB_TYPE == "stl_VAD" or JOB_TYPE == "mtl" :
+                print("Validating VAD...")
                 for i, batch in enumerate(emobank_val) :
                     with torch.no_grad() :
                         target = batch[3].to(DEVICE)
@@ -623,6 +625,7 @@ if __name__ == "__main__":
         VAD_dict = {}
         total_loss = 0.0
         if JOB_TYPE == "stl_emotion" or JOB_TYPE == "mtl" :
+            print("Testing emotion...")
             for i, batch in enumerate(senwave_test) :
                 with torch.no_grad() :
                     target = batch[5].to(DEVICE) if ACTIVATION == "bce" else batch[3].to(DEVICE)
@@ -645,6 +648,7 @@ if __name__ == "__main__":
             total_loss += sum(test_loss["Emotion"])/len(test_loss["Emotion"]) 
             
         if JOB_TYPE == "stl_VAD" or JOB_TYPE == "mtl" :
+            print("Testing VAD...")
             for i, batch in enumerate(emobank_test) :
                 with torch.no_grad() :
                     target = batch[3].to(DEVICE)
