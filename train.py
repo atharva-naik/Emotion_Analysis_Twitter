@@ -472,7 +472,7 @@ if __name__ == "__main__":
                 
                 if i%50 == 0 :
                     print("Batch: {} Emotion_loss: {} ".format(i, emotion_loss))
-                train_loss["Emotion"].append(emotion_loss)
+                train_loss["Emotion"].append(emotion_loss.item())
                 
                 if USE_SCHEDULER :
                     scheduler.step()
@@ -488,7 +488,7 @@ if __name__ == "__main__":
                 
                 if i%50 == 0 :
                     print("Batch: {} VAD_loss: {} ".format(i, VAD_loss))
-                train_loss["VAD"].append(VAD_loss)
+                train_loss["VAD"].append(VAD_loss.item())
                 
                 if USE_SCHEDULER :
                     scheduler.step()
