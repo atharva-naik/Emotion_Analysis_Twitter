@@ -132,6 +132,7 @@ params = {
         "USE_CONNECTION" : USE_CONNECTION,
         "SUCCESSIVE_REG_DELTA" : SUCCESSIVE_REG_DELTA,
 }
+
 print(json.dumps(params, indent=4))
 with open(f"{SAVE_DIR}/{EXP_NAME}/hp.json","w") as fin :
     json.dump(params, fin, indent=4)
@@ -430,7 +431,7 @@ if __name__ == "__main__":
 
     training_stats = []
     best_save = 1e8
-    best_model = None
+    best_model = copy.deepcopy(model)
     best_epoch = -1
 
     for epoch_i in trange(EPOCHS) :
@@ -537,8 +538,11 @@ if __name__ == "__main__":
             best_epoch = epoch_i
             print(f"{SAVE_POLICY} : Saving the model : {epoch_i}")
 
-    model = best_model.to(DEVICE)
-    torch.cuda.empty_cache()
+    model = Net().to(DEVICE)
+    model.load_state_dict(best_model.state_dict())
+# best_model.to(DEVICE)
+    print(model)
+#    torch.cuda.empty_cache()
 
     test_loss = {"VAD":[],"Emotion":[]}
     test_acc = {"VAD":[],"Emotion":[]}
@@ -556,6 +560,8 @@ if __name__ == "__main__":
     for i, batch in enumerate(emobank_test) :
         with torch.no_grad() :
             target = batch[3].to(DEVICE)
+ #           print(batch)
+#            print(target)
             output = run_model(model, batch, "VAD")
             loss = VAD_loss_fn(output, target)
             acc = accuracy_VAD(output, target)
