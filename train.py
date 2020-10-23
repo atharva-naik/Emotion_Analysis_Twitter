@@ -390,6 +390,8 @@ if __name__ == "__main__":
             emobank_train = temp_dict["emobank_train"]
             emobank_val = temp_dict["emobank_val"]
             emobank_test = temp_dict["emobank_test"]
+            senwave_trainval = temp_dict["senwave_trainval"]
+            emobank_trainval = temp_dict["emobank_trainval"]
     else :
         senwave_train = DatasetModule(PATH=f"{DATA_DIR}/train.csv",category="senwave")
         senwave_val = DatasetModule(PATH=f"{DATA_DIR}/val.csv",category="senwave")
@@ -400,6 +402,8 @@ if __name__ == "__main__":
         senwave_test = DatasetModule(PATH=f"{DATA_DIR}/test.csv",category="senwave")
         emobank_test = DatasetModule(PATH=f"{DATA_DIR}/Emobank/test.csv",category="emobank")
 
+        senwave_trainval = DatasetModule(PATH=f"{DATA_DIR}/train_val.csv",category="senwave")
+        emobank_trainval = DatasetModule(PATH=f"{DATA_DIR}/Emobank/train_val.csv",category="emobank")
         if SAVE_PICKLE :
             print("Saving data.....")
             temp_dict = {
@@ -409,14 +413,16 @@ if __name__ == "__main__":
                 "emobank_train" : emobank_train,
                 "emobank_val" : emobank_val,
                 "emobank_test" : emobank_test,
+                "senwave_trainval" : senwave_trainval,
+                "emobank_trainval" : emobank_trainval,
             }
             with open(f"dataset_{ENCODER}.pkl","wb") as fin :
                 pickle.dump(temp_dict,fin)
                               
     if(FINAL_TEST) :
         print("Loading training and testing data...")
-        senwave_train = DataLoader(ConcatDataset([senwave_train, senwave_val]), shuffle=True, batch_size=BATCH_SIZE, num_workers=8)
-        emobank_train = DataLoader(ConcatDataset([emobank_train, emobank_val]), shuffle=True, batch_size=BATCH_SIZE, num_workers=8)
+        senwave_train = DataLoader(senwave_trainval, shuffle=True, batch_size=BATCH_SIZE, num_workers=8)
+        emobank_train = DataLoader(emobank_trainval, shuffle=True, batch_size=BATCH_SIZE, num_workers=8)
 
         senwave_test = DataLoader(senwave_test, shuffle=False, batch_size=len(senwave_test), num_workers=8)
         emobank_test = DataLoader(emobank_test, shuffle=False, batch_size=len(emobank_test), num_workers=8)
