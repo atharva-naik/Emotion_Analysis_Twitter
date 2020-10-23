@@ -2,6 +2,7 @@ import os
 import re
 import json
 import math
+import copy
 import torch
 import codecs
 import random
@@ -429,7 +430,7 @@ if __name__ == "__main__":
 
     training_stats = []
     best_save = 1e8
-    best_model_path = None
+    best_model = None
     best_epoch = -1
 
     for epoch_i in trange(EPOCHS) :
@@ -532,15 +533,12 @@ if __name__ == "__main__":
 
         if best_save > training_stats[-1]["Total Validation Loss"] :
             best_save = training_stats[-1]["Total Validation Loss"]
-            best_model_path = f"{SAVE_DIR}/{EXP_NAME}/best.ckpt"
+            best_model = copy.deepcopy(model).cpu()
             best_epoch = epoch_i
-            torch.save(model.state_dict(), best_model_path)
             print(f"{SAVE_POLICY} : Saving the model : {epoch_i}")
 
-    model = Net().to(DEVICE)
+    model = best_model.to(DEVICE)
     torch.cuda.empty_cache()
-    model.load_state_dict(torch.load(best_model_path))
-    os.system(f"rm {best_model_path}")
 
     test_loss = {"VAD":[],"Emotion":[]}
     test_acc = {"VAD":[],"Emotion":[]}
