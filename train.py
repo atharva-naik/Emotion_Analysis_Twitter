@@ -28,6 +28,7 @@ from torch.utils.data import TensorDataset, DataLoader, Dataset, random_split, C
 from sklearn.metrics import accuracy_score, f1_score, label_ranking_average_precision_score, hamming_loss, jaccard_score
 
 torch.autograd.set_detect_anomaly(True)
+torch.multiprocessing.set_sharing_strategy('file_system')
 parser = argparse.ArgumentParser()
 parser.add_argument('--exp_name', type=str, default="bert")
 parser.add_argument('--use_gpu', action="store_true")
@@ -421,18 +422,18 @@ if __name__ == "__main__":
                               
     if(FINAL_TEST) :
         print("Loading training and testing data...")
-        senwave_train = DataLoader(senwave_trainval, shuffle=True, batch_size=BATCH_SIZE, num_workers=8)
-        emobank_train = DataLoader(emobank_trainval, shuffle=True, batch_size=BATCH_SIZE, num_workers=8)
+        senwave_train = DataLoader(senwave_trainval, shuffle=True, batch_size=BATCH_SIZE, num_workers=4)
+        emobank_train = DataLoader(emobank_trainval, shuffle=True, batch_size=BATCH_SIZE, num_workers=4)
 
-        senwave_test = DataLoader(senwave_test, shuffle=False, batch_size=len(senwave_test), num_workers=8)
-        emobank_test = DataLoader(emobank_test, shuffle=False, batch_size=len(emobank_test), num_workers=8)
+        senwave_test = DataLoader(senwave_test, shuffle=False, batch_size=len(senwave_test), num_workers=4)
+        emobank_test = DataLoader(emobank_test, shuffle=False, batch_size=len(emobank_test), num_workers=4)
     else :
         print("Loading training and validation data...")
-        senwave_train = DataLoader(senwave_train, shuffle=True, batch_size=BATCH_SIZE, num_workers=8)
-        senwave_val = DataLoader(senwave_val, shuffle=False, batch_size=BATCH_SIZE, num_workers=8)
+        senwave_train = DataLoader(senwave_train, shuffle=True, batch_size=BATCH_SIZE, num_workers=4)
+        senwave_val = DataLoader(senwave_val, shuffle=False, batch_size=BATCH_SIZE, num_workers=4)
         
-        emobank_train = DataLoader(emobank_train, shuffle=True, batch_size=BATCH_SIZE, num_workers=8)
-        emobank_val = DataLoader(emobank_val,shuffle=False, batch_size=BATCH_SIZE, num_workers=8)
+        emobank_train = DataLoader(emobank_train, shuffle=True, batch_size=BATCH_SIZE, num_workers=4)
+        emobank_val = DataLoader(emobank_val,shuffle=False, batch_size=BATCH_SIZE, num_workers=4)
 
     model = Net().to(DEVICE)
     model.init_weights(dist='normal')
