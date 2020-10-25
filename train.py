@@ -54,7 +54,7 @@ parser.add_argument('--epochs', type=int, default=5)
 parser.add_argument('--seed', type=int, default=40)
 parser.add_argument('--job_type', type=str, default="mtl")
 parser.add_argument('--final_test', action="store_true")
-
+parser.add_argument('--clip', action="store_true")
 parser.add_argument('--use_hierarchy', action="store_true")
 parser.add_argument('--use_successive_reg', action="store_true")
 parser.add_argument('--use_connection', action="store_true")
@@ -90,6 +90,7 @@ EPOCHS = args.epochs
 BATCH_SIZE = args.batch_size
 LR = args.lr
 EMPATH = args.use_empath
+CLIP_NORM = args.clip
 ACTIVATION = args.activation
 USE_SCHEDULER = args.use_scheduler
 THRESHOLD = 0.33 if ACTIVATION == 'tanh' else 0.5
@@ -436,6 +437,7 @@ if __name__ == "__main__":
         emobank_val = DataLoader(emobank_val,shuffle=False, batch_size=BATCH_SIZE, num_workers=4)
 
     model = Net().to(DEVICE)
+    print("THE DEVICE BEING USED IS: "+str(DEVICE))
     model.init_weights(dist='normal')
     loss_fn = nn.BCELoss() if ACTIVATION == 'bce' else nn.MultiLabelMarginLoss()
     VAD_loss_fn = nn.MSELoss()
@@ -475,12 +477,14 @@ if __name__ == "__main__":
                 senwave_output = run_model(model, senwave_batch, "Emotion")
                 emotion_loss = loss_fn(senwave_output, target)
                 emotion_loss.backward()
+                if CLIP_NORM:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
                 optimizer.step()
-                
+
                 if i%50 == 0 :
                     print("Batch: {} Emotion_loss: {} ".format(i, emotion_loss))
                 train_loss["Emotion"].append(emotion_loss.item())
-                
+
                 if USE_SCHEDULER :
                     scheduler.step()
         elif JOB_TYPE == "stl_VAD" :
@@ -491,15 +495,17 @@ if __name__ == "__main__":
                 emobank_output = run_model(model, emobank_batch, "VAD")
                 VAD_loss = VAD_loss_fn(emobank_output, target.float())
                 VAD_loss.backward()
+                if CLIP_NORM:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
                 optimizer.step()
-                
+
                 if i%50 == 0 :
                     print("Batch: {} VAD_loss: {} ".format(i, VAD_loss))
                 train_loss["VAD"].append(VAD_loss.item())
-                
+
                 if USE_SCHEDULER :
                     scheduler.step()
-        else :        
+        else :
             num_batches = max(len(senwave_train), len(emobank_train))
             senwave_ = list(enumerate(senwave_train))
             emobank_ = list(enumerate(emobank_train))
