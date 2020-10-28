@@ -1,0 +1,227 @@
+NO CLIPPING
+======== Epoch 5 / 5 ========
+Training emotion...
+Batch: 0 Emotion_loss: 0.17462462186813354
+Batch: 50 Emotion_loss: 0.14645323157310486
+Batch: 100 Emotion_loss: 0.235817089676857
+Batch: 150 Emotion_loss: 0.2627912163734436
+Batch: 200 Emotion_loss: 0.1817435920238495
+Batch: 250 Emotion_loss: 0.2653678059577942
+{
+    "Emotion training_loss": 0.17880030026566898
+}
+100%|████████████████████████████████████████████| 5/5 [12:05<00:00, 145.20s/it]
+Testing emotion...
+{
+    "Emotion test_loss": 0.6883376836776733,
+    "Emotion test_acc": 0.8273636102676392,
+    "Emotion test_micro_f1": 0.5645494152717266,
+    "Emotion test_macro_f1": 0.5166060725676567,
+    "Emotion test_jacc": 0.46685238095238096,
+    "Emotion test_lrap": 0.7368190740740747,
+    "Emotion test_hamming": 0.17263636363636364,
+
+======== Epoch 5 / 5 ========
+Training VAD...
+Batch: 0 VAD_loss: 0.03665648400783539
+Batch: 50 VAD_loss: 0.02577686868607998
+Batch: 100 VAD_loss: 0.03184312582015991
+Batch: 150 VAD_loss: 0.026162371039390564
+Batch: 200 VAD_loss: 0.031253915280103683
+Batch: 250 VAD_loss: 0.0290873683989048
+{   
+    "VAD training_loss": 0.0361916209361188
+}
+100%|████████████████████████████████████████████| 5/5 [11:31<00:00, 138.32s/it]
+Testing VAD...
+{   
+    "VAD test_loss": 0.05577617511153221,
+    "VAD test_r2": [
+        0.7581754547303355,
+        0.4742375821027467,
+        0.460294541517965
+    ],
+    "Total test Loss": 0.05577617511153221
+
+======== Epoch 3 / 3 ========
+Training emotion...
+Batch: 0 Emotion_loss: 0.4134712815284729
+Batch: 50 Emotion_loss: 0.40085235238075256
+Batch: 100 Emotion_loss: 0.2606343924999237
+Batch: 150 Emotion_loss: 0.37254658341407776
+Batch: 200 Emotion_loss: 0.31041502952575684
+Batch: 250 Emotion_loss: 0.4991176724433899
+{   
+    "Emotion training_loss": 0.3650009865667803
+}
+100%|████████████████████████████████████████████| 3/3 [10:27<00:00, 209.30s/it]
+Testing emotion...
+{   
+    "Emotion test_loss": 0.6355350017547607,
+    "Emotion test_acc": 0.810272753238678,
+    "Emotion test_micro_f1": 0.5638453500522467,
+    "Emotion test_macro_f1": 0.5180165042918558,
+    "Emotion test_jacc": 0.4403166666666667,
+    "Emotion test_lrap": 0.7429617364117376,
+    "Emotion test_hamming": 0.18972727272727272,
+    "Total test Loss": 0.6355350017547607
+
+WITH GRADIENT CLIPPING
+======== Epoch 5 / 5 ========
+Training VAD...
+Batch: 0 VAD_loss: 0.03235280141234398
+Batch: 50 VAD_loss: 0.020858442410826683
+Batch: 100 VAD_loss: 0.023034963756799698
+Batch: 150 VAD_loss: 0.028366034850478172
+Batch: 200 VAD_loss: 0.02812766656279564
+Batch: 250 VAD_loss: 0.022959452122449875
+{   
+    "VAD training_loss": 0.03133151600216056
+}
+100%|████████████████████████████████████████████| 5/5 [15:03<00:00, 180.79s/it]
+Testing VAD...
+{   
+    "VAD test_loss": 0.05933663994073868,
+    "VAD test_r2": [
+        0.7660209786124843,
+        0.46538625252479104,
+        0.4494184417789161
+    ],
+    "Total test Loss": 0.05933663994073868
+}
+
+BEST HYPERPARAMETERS FOR SENWAVE
+======== Epoch 4 / 4 ========
+Training emotion...
+Batch: 0 Emotion_loss: 0.2284923642873764
+Batch: 50 Emotion_loss: 0.27061277627944946
+Batch: 100 Emotion_loss: 0.20948709547519684
+Batch: 150 Emotion_loss: 0.24509310722351074
+Batch: 200 Emotion_loss: 0.3192400336265564
+Batch: 250 Emotion_loss: 0.2676253020763397
+Batch: 300 Emotion_loss: 0.251700758934021
+Batch: 350 Emotion_loss: 0.2516532838344574
+Batch: 400 Emotion_loss: 0.21514710783958435
+Batch: 450 Emotion_loss: 0.4115082025527954
+Batch: 500 Emotion_loss: 0.2850509285926819
+Batch: 550 Emotion_loss: 0.3986082673072815
+{   
+    "Emotion training_loss": 0.2875573214666246
+}
+100%|████████████████████████████████████████████| 4/4 [10:42<00:00, 160.57s/it]
+Testing emotion...
+{   
+    "Emotion test_loss": 0.6337342262268066,
+    "Emotion test_acc": 0.8328182101249695,
+    "Emotion test_micro_f1": 0.5815699658703072,
+    "Emotion test_macro_f1": 0.5347227666149006,
+    "Emotion test_jacc": 0.4812166666666667,
+    "Emotion test_lrap": 0.7492939688552195,
+    "Emotion test_hamming": 0.16718181818181818,
+    "Total test Loss": 0.6337342262268066
+
+
+############# BEST RESULTS OF STL #############
+
+### VAD ### 
+NO GRADIENT CLIPPING
+HYPERPARAMETERS:
+    "USE_GPU ": true,
+    "EXP_NAME": "bert_stl_VAD",
+    "SAVE_DIR": "saved_models",
+    "DATA_DIR": "data/",
+    "ENCODER": "bert",
+    "EPOCHS": 5,
+    "BATCH_SIZE": 32,
+    "LR": 2e-05,
+    "EMPATH": false,
+    "ACTIVATION": "tanh",
+    "USE_SCHEDULER": false,
+    "THRESHOLD": 0.33,
+    "SAVE_POLICY": "loss",
+    "OPTIM": "adamw",
+    "L2": true,
+    "WD": 0.01,
+    "USE_DROPOUT": false,
+    "DROPOUT_RATE": 0.2,
+    "DEVICE": "cpu",
+    "LOAD_PICKLE": "dataset_bt.pkl",
+    "SAVE_PICKLE": false,
+    "VAD_wt": 2.0,
+    "HIERARCHY": false,
+    "SUCCESSIVE_REG": false,
+    "USE_CONNECTION": false,
+    "SUCCESSIVE_REG_DELTA": 0.1,
+    "JOB_TYPE": "stl_VAD",
+    "FINAL_TEST": false
+
+Last Epoch:
+Batch: 0 VAD_loss: 0.03665648400783539
+Batch: 50 VAD_loss: 0.02577686868607998
+Batch: 100 VAD_loss: 0.03184312582015991
+Batch: 150 VAD_loss: 0.026162371039390564
+Batch: 200 VAD_loss: 0.031253915280103683
+Batch: 250 VAD_loss: 0.0290873683989048
+   
+VAD training_loss: 0.0361916209361188
+VAD test_loss: 0.05577617511153221,
+VAD test_r2: 0.7581754547303355, 0.4742375821027467, 0.460294541517965
+Total test Loss: 0.05577617511153221
+
+### EMOTIONS ### 
+WITH CLIPPING
+HYPERPARAMETERS:
+    "USE_GPU ": true,
+    "EXP_NAME": "bert_stl_emo_clip",
+    "SAVE_DIR": "saved_models",
+    "DATA_DIR": "data/",
+    "ENCODER": "bert",
+    "EPOCHS": 4,
+    "BATCH_SIZE": 16,
+    "LR": 2e-05,
+    "EMPATH": false,
+    "ACTIVATION": "tanh",
+    "USE_SCHEDULER": false,
+    "THRESHOLD": 0.33,
+    "SAVE_POLICY": "loss",
+    "OPTIM": "adamw",
+    "L2": true,
+    "WD": 0.01,
+    "USE_DROPOUT": false,
+    "DROPOUT_RATE": 0.2,
+    "DEVICE": "cuda:0",
+    "LOAD_PICKLE": "dataset_bert.pkl",
+    "SAVE_PICKLE": false,
+    "VAD_wt": 0.5,
+    "HIERARCHY": false,
+    "SUCCESSIVE_REG": false,
+    "USE_CONNECTION": false,
+    "SUCCESSIVE_REG_DELTA": 0.1,
+    "JOB_TYPE": "stl_emotion",
+    "FINAL_TEST": true
+
+Last Epoch:
+Batch: 0 Emotion_loss: 0.2284923642873764
+Batch: 50 Emotion_loss: 0.27061277627944946
+Batch: 100 Emotion_loss: 0.20948709547519684
+Batch: 150 Emotion_loss: 0.24509310722351074
+Batch: 200 Emotion_loss: 0.3192400336265564
+Batch: 250 Emotion_loss: 0.2676253020763397
+Batch: 300 Emotion_loss: 0.251700758934021
+Batch: 350 Emotion_loss: 0.2516532838344574
+Batch: 400 Emotion_loss: 0.21514710783958435
+Batch: 450 Emotion_loss: 0.4115082025527954
+Batch: 500 Emotion_loss: 0.2850509285926819
+Batch: 550 Emotion_loss: 0.3986082673072815
+
+Emotion training_loss: 0.2875573214666246
+Emotion test_loss: 0.6337342262268066,
+Emotion test_acc: 0.8328182101249695,
+Emotion test_micro_f1: 0.5815699658703072,
+Emotion test_macro_f1: 0.5347227666149006,
+Emotion test_jacc: 0.4812166666666667,
+Emotion test_lrap: 0.7492939688552195,
+Emotion test_hamming: 0.16718181818181818,
+Total test Loss: 0.6337342262268066
+
+
