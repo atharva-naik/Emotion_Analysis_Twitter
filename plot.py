@@ -65,7 +65,7 @@ Aspect 1:
 
 # HELPER FUNCTIONS
 # convert dates to serial number of day in the year  
-def day_to_date(n):
+def day_to_date(n) :
     i = 11
     while n-list(months.values())[i]<=0:
         i -= 1
@@ -73,7 +73,7 @@ def day_to_date(n):
     day = n-list(months.values())[i]
     return month + ' ' + str(day)
 
-def date_str_to_num(date):
+def date_str_to_num(date) :
     table = {k:i+1 for i,k in enumerate(months.keys())}
     month, day = date.split()
     month = str(table[month])
@@ -82,16 +82,16 @@ def date_str_to_num(date):
     if len(month) == 1: month = '0'+month
     return day+'/'+month
 
-def parse_aspect_file(fname): # code to read aspect files
+def parse_aspect_file(fname) : # code to read aspect files
     '''Returns a dictionary which has dictionary of word:score for each aspect for each key/emotion'''
     '''the structure is dictionary of list of dictionary'''
     # aspects[emotion][k][word] = <score of that word> NOTE: k is the aspect number, strating from 0
     aspects = {}
-    if fname:
-        with open(fname, "r") as f:
-            for line in f:
+    if fname :
+        with open(fname, "r") as f :
+            for line in f :
                 line = line.strip()
-                if line[0] == '$':
+                if line[0] == '$' :
                     curr = line[1:]  
                     aspects[curr] = []
                 elif line.split()[0] == 'Aspect':
@@ -99,7 +99,7 @@ def parse_aspect_file(fname): # code to read aspect files
                 else:
                     temp = ast.literal_eval(line)
                     aspects[curr][-1] = {} 
-                    for item in temp:
+                    for item in temp :
                         k,v = item.split('|')
                         aspects[curr][-1][k] = float(v)                    
             f.close()
@@ -108,20 +108,20 @@ def parse_aspect_file(fname): # code to read aspect files
 # END OF HELPER FUNCTIONS
 
 # ANALSYIS OF COUNTS
-if args.fname:
-    if args.fname.split('.')[-1] == 'csv':
-        if args.id:
+if args.fname :
+    if args.fname.split('.')[-1] == 'csv' :
+        if args.id :
             data = pd.read_csv(args.fname).drop_duplicates(subset=args.id).to_dict('records')
-        else:
+        else :
             data = pd.read_csv(args.fname).to_dict('records')
-    elif args.fname.split('.')[-1] == 'tsv':
+    elif args.fname.split('.')[-1] == 'tsv' :
         data = pd.read_csv(args.fname, sep='\t').to_dict('records')
     else:
         raise(Exception("Please enter a csv or tsv file"))
 
-    for i, item in enumerate(data):
-        for j, word in enumerate(item[args.date].lower().split()):
-            if word in months.keys():
+    for i, item in enumerate(data) :
+        for j, word in enumerate(item[args.date].lower().split()) :
+            if word in months.keys() :
                 try:
                     item["day number"] = months[word] + int(item[args.date].lower().split()[j+1])
                 except:
@@ -132,34 +132,34 @@ if args.fname:
     min_day, max_day = sorted_data[0]['day number'], sorted_data[-1]['day number']
 
     j = min_day
-    while j <= max_day:
+    while j <= max_day :
         day_dist.append(0)
         dates.append((day_to_date(j), day_to_date(j+args.timestep-1)))
         counts.append({k:0 for k in emotions})
         norm_counts.append({k:0 for k in emotions})
         j += args.timestep
 
-    for i, item in enumerate(sorted_data): 
+    for i, item in enumerate(sorted_data) : 
         ind = int((item['day number'] - min_day + 1)/args.timestep)
         if (item['day number'] - min_day + 1)%args.timestep == 0: ind -= 1 
         day_dist[ind] += 1
-        if type(item[args.emotions]) is str:
+        if type(item[args.emotions]) is str :
             emo_pres = ast.literal_eval(item[args.emotions])
         else:
             emo_pres = item[args.emotions]
-        for emotion in emo_pres:
+        for emotion in emo_pres :
             counts[ind][emotion] += 1
             norm_counts[ind][emotion] += 1
 
-    for emotion in emotions:
+    for emotion in emotions :
         for i in range(len(norm_counts)):
-            if day_dist[i] != 0: 
+            if day_dist[i] != 0 : 
                 norm_counts[i][emotion] /= day_dist[i]
 
     chunk_counts, chunk_dates, temp = [], [], []
     ctr, from_, to, j = 0, 0, 0, -1
-    for i,item in enumerate(sorted_data):
-        if (ctr+1)%args.chunk_size == 0:
+    for i,item in enumerate(sorted_data) :
+        if (ctr+1)%args.chunk_size == 0 :
             to = item['day number']
             chunk_dates.append((day_to_date(from_), day_to_date(to)))
         if ctr%args.chunk_size == 0:
@@ -167,13 +167,13 @@ if args.fname:
             from_ = item['day number']
             chunk_counts.append({k:0 for k in emotions})
         ctr += 1
-        if type(item[args.emotions]) is str:
+        if type(item[args.emotions]) is str :
             emo_pres = ast.literal_eval(item[args.emotions])
         else:
             emo_pres = item[args.emotions]
         for emotion in emo_pres:
             chunk_counts[j][emotion] += 1 
-    if ctr%args.chunk_size != 0:
+    if ctr%args.chunk_size != 0 :
         to = item['day number']
         chunk_dates.append((day_to_date(from_), day_to_date(to)))
     print("Summary:")
@@ -188,35 +188,35 @@ if args.fname:
 aspects = parse_aspect_file(args.aspects)
 aspect_counts = {}
 if aspects:
-    for i, emotion in enumerate(aspects.keys()):
+    for i, emotion in enumerate(aspects.keys()) :
         aspect_counts[emotion] = []
-        for j in range(len(aspects[emotion])):
+        for j in range(len(aspects[emotion])) :
             aspect_counts[emotion].append([])
-            for _ in range(len(chunk_counts)):
+            for _ in range(len(chunk_counts)) :
                 aspect_counts[emotion][j].append(0)
     curr_chunk = -1
-    for i, item in enumerate(sorted_data):
+    for i, item in enumerate(sorted_data) :
         if i%args.chunk_size == 0: curr_chunk += 1 
-        if type(item[args.emotions]) is str:
+        if type(item[args.emotions]) is str :
             emo_pres = ast.literal_eval(item[args.emotions])
         else:
             emo_pres = item[args.emotions]
-        for emotion in emo_pres:
-            if emotion in aspects.keys():
-                for j in range(len(aspects[emotion])):
-                    for word in item[args.body_text].split():
-                        if aspects[emotion][j].__contains__(word):
+        for emotion in emo_pres :
+            if emotion in aspects.keys() :
+                for j in range(len(aspects[emotion])) :
+                    for word in item[args.body_text].split() :
+                        if aspects[emotion][j].__contains__(word) :
                             aspect_counts[emotion][j][curr_chunk] += 1
 
 try:
     os.mkdir('results')
-except FileExistsError:
+except FileExistsError :
     pass
 
 # GRAPH PLOTTING FUNCTIONS
 def plot_graphs(title, dates, counts, xlbl, ylbl, emotions, output):
     x = [i for i in range(len(dates))]
-    for emotion in emotions:
+    for emotion in emotions :
         sns.set(font_scale=1.5)
         plt.rcParams["figure.figsize"] = (25,17)
         plt.xticks(x, labels=[date_str_to_num(itm[0])+'-'+date_str_to_num(itm[1]) for itm in dates], rotation=90)
@@ -229,16 +229,16 @@ def plot_graphs(title, dates, counts, xlbl, ylbl, emotions, output):
         plt.savefig('results/'+ output + '_'+ emotion + '.png')
         plt.clf()
 
-def plot_aspects(title, dates, counts, xlbl, ylbl, labels, output):
+def plot_aspects(title, dates, counts, xlbl, ylbl, labels, output) :
     x = [i for i in range(len(dates))]
-    for emotion in counts.keys():
+    for emotion in counts.keys() :
         sns.set(font_scale=1.5)
         plt.rcParams["figure.figsize"] = (25,17)
         plt.xticks(x, labels=[date_str_to_num(itm[0])+'-'+date_str_to_num(itm[1]) for itm in dates], rotation=90)
 
-        for j in range(len(counts[emotion])):
+        for j in range(len(counts[emotion])) :
             y = [counts[emotion][j][i] for i in range(len(dates))]
-            if emotion in labels.keys():
+            if emotion in labels.keys() :
                 plt.plot(x, y, label=labels[emotion][j])
             else:
                 plt.plot(x, y, label=j+1)
@@ -253,11 +253,11 @@ def plot_aspects(title, dates, counts, xlbl, ylbl, labels, output):
 print("Analysis finished ...")
 print("Plotting ...")
 # PLOT IF REQUESTED 
-if args.fname:
+if args.fname :
     plot_graphs("Absolute Emotion Levels", dates, counts, 'time ranges', 'counts', emotions, "absolute_counts")
     plot_graphs("Normailsed Emotion Levels", dates, norm_counts, 'time ranges', 'counts', emotions, "normalised_counts")
     plot_graphs("Chunkwise Emotion Levels", chunk_dates, chunk_counts, 'time ranges', 'counts', emotions, "chunk_counts")
 
-if args.aspects:
+if args.aspects :
     #currently chunking scheme is same as global scheme
     plot_aspects("Chunkwise Aspect Mentions", chunk_dates, aspect_counts, 'time ranges', 'counts', aspect_names,"aspect_chunk_counts")
